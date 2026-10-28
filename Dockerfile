@@ -1,6 +1,6 @@
 # ==============================================================================
 # Ultra-Optimized ComfyUI Anime Serverless Worker
-# Architecture: ComfyUI Headless Engine + SDXL Anime Pipeline
+# Architecture: ComfyUI Headless Engine + SDXL (NoobAI-XL) + Hyper-SD 8-Step LoRA
 # ==============================================================================
 FROM nvidia/cuda:12.4.1-cudnn-devel-ubuntu22.04
 
@@ -9,8 +9,10 @@ ENV DEBIAN_FRONTEND=noninteractive \
     PIP_PREFER_BINARY=1 \
     COMFY_DIR=/app/ComfyUI \
     COMFY_HOST=127.0.0.1:8188 \
-    CHECKPOINT_NAME=animagine-xl-3.1.safetensors \
-    CHECKPOINT_URL=https://huggingface.co/cagliostrolab/animagine-xl-3.1/resolve/main/animagine-xl-3.1.safetensors
+    CHECKPOINT_NAME=NoobAI-XL-v1.1.safetensors \
+    CHECKPOINT_URL=https://huggingface.co/Laxhar/noobai-XL-1.1/resolve/main/NoobAI-XL-v1.1.safetensors \
+    LORA_NAME=Hyper-SDXL-8steps-CFG-lora.safetensors \
+    LORA_URL=https://huggingface.co/ByteDance/Hyper-SD/resolve/main/Hyper-SDXL-8steps-CFG-lora.safetensors
 
 # 1. System dependencies
 RUN apt-get update && apt-get install -y --no-install-recommends \
@@ -52,11 +54,13 @@ RUN git clone --depth 1 https://github.com/comfyanonymous/ComfyUI.git /app/Comfy
 COPY requirements.txt /app/requirements.txt
 RUN python3 -m pip install --no-cache-dir -r /app/requirements.txt
 
-# 5. Prepare folders
+# 5. Prepare folders & pre-download Hyper-SD 8-step LoRA (~400MB)
 RUN mkdir -p /app/ComfyUI/models/checkpoints \
              /app/ComfyUI/models/loras \
              /app/ComfyUI/models/vae \
-             /app/ComfyUI/output
+             /app/ComfyUI/output \
+    && curl -L --retry 3 --connect-timeout 30 -o /app/ComfyUI/models/loras/Hyper-SDXL-8steps-CFG-lora.safetensors \
+       https://huggingface.co/ByteDance/Hyper-SD/resolve/main/Hyper-SDXL-8steps-CFG-lora.safetensors
 
 # 6. Copy handler, default anime workflow, and startup script
 COPY workflow_anime.json /app/workflow_anime.json

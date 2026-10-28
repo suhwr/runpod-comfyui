@@ -26,7 +26,8 @@ logger = logging.getLogger("comfyui-worker")
 
 COMFY_DIR = os.environ.get("COMFY_DIR", "/app/ComfyUI")
 COMFY_HOST = os.environ.get("COMFY_HOST", "127.0.0.1:8188")
-CHECKPOINT_NAME = os.environ.get("CHECKPOINT_NAME", "animagine-xl-3.1.safetensors")
+CHECKPOINT_NAME = os.environ.get("CHECKPOINT_NAME", "NoobAI-XL-v1.1.safetensors")
+LORA_NAME = os.environ.get("LORA_NAME", "Hyper-SDXL-8steps-CFG-lora.safetensors")
 DEFAULT_CATBOX_USER_HASH = os.environ.get("CATBOX_KEY", "")
 MAX_CONCURRENCY = max(1, int(os.environ.get("MAX_CONCURRENCY", "1")))
 
@@ -201,17 +202,22 @@ def build_workflow_from_inputs(inputs: Dict[str, Any]) -> Tuple[Dict[str, Any], 
 
     width = int(inputs.get("width", 832))
     height = int(inputs.get("height", 1216))
-    steps = int(inputs.get("steps", 25))
-    cfg = float(inputs.get("cfg", 7.0))
+    steps = int(inputs.get("steps", 8))
+    # Cap steps to 12 maximum to guarantee fast execution (~4s) and prevent abuse
+    steps = min(12, max(4, steps))
+    cfg = float(inputs.get("cfg", 5.0))
 
     seed = int(inputs.get("seed", -1))
     if seed < 0:
         seed = random.randint(1, 2**32 - 1)
 
     ckpt_override = inputs.get("model") or inputs.get("checkpoint") or CHECKPOINT_NAME
+    lora_override = inputs.get("lora") or LORA_NAME
 
     workflow = load_default_workflow()
     workflow["1"]["inputs"]["ckpt_name"] = ckpt_override
+    if "10" in workflow and "inputs" in workflow["10"]:
+        workflow["10"]["inputs"]["lora_name"] = lora_override
     workflow["2"]["inputs"]["text"] = positive_text
     workflow["3"]["inputs"]["text"] = negative_text
     workflow["4"]["inputs"]["width"] = width
