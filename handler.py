@@ -9,6 +9,7 @@ import random
 import shutil
 import subprocess
 import sys
+import threading
 import time
 import urllib.parse
 from typing import Any, Dict, List, Optional, Tuple
@@ -132,6 +133,7 @@ def upload_with_fallback(file_path: pathlib.Path, catbox_hash: Optional[str] = N
 # ============================================================================ #
 
 COMFY_PROCESS: Optional[subprocess.Popen] = None
+COMFY_BOOT_LOCK = threading.Lock()
 
 
 def check_comfy_health() -> bool:
@@ -144,37 +146,38 @@ def check_comfy_health() -> bool:
 
 def start_comfyui_server():
     global COMFY_PROCESS
-    if check_comfy_health():
-        logger.info("ComfyUI server is already running and healthy.")
-        return
-
-    logger.info(f"Starting headless ComfyUI server from {COMFY_DIR}...")
-    cmd = [
-        sys.executable,
-        "main.py",
-        "--listen", "127.0.0.1",
-        "--port", "8188",
-        "--highvram",
-        "--dont-upcast-attention",
-        "--disable-auto-launch",
-    ]
-    COMFY_PROCESS = subprocess.Popen(
-        cmd,
-        cwd=COMFY_DIR,
-        stdout=subprocess.PIPE,
-        stderr=subprocess.STDOUT,
-        text=True,
-    )
-
-    # Wait for server to come online
-    start_time = time.time()
-    while time.time() - start_time < 90:
+    with COMFY_BOOT_LOCK:
         if check_comfy_health():
-            logger.info(f"✅ ComfyUI is up and running in {time.time() - start_time:.2f}s!")
+            logger.info("ComfyUI server is already running and healthy.")
             return
-        time.sleep(1)
 
-    raise RuntimeError("ComfyUI server failed to start within 90 seconds.")
+        logger.info(f"Starting headless ComfyUI server from {COMFY_DIR}...")
+        cmd = [
+            sys.executable,
+            "main.py",
+            "--listen", "127.0.0.1",
+            "--port", "8188",
+            "--highvram",
+            "--dont-upcast-attention",
+            "--disable-auto-launch",
+        ]
+        COMFY_PROCESS = subprocess.Popen(
+            cmd,
+            cwd=COMFY_DIR,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.STDOUT,
+            text=True,
+        )
+
+        # Wait for server to come online
+        start_time = time.time()
+        while time.time() - start_time < 90:
+            if check_comfy_health():
+                logger.info(f"✅ ComfyUI is up and running in {time.time() - start_time:.2f}s!")
+                return
+            time.sleep(1)
+
+        raise RuntimeError("ComfyUI server failed to start within 90 seconds.")
 
 
 def load_default_workflow() -> Dict[str, Any]:
