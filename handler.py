@@ -132,10 +132,6 @@ def upload_with_fallback(file_path: pathlib.Path, catbox_hash: Optional[str] = N
 # ComfyUI Process & Health Lifecycle                                           #
 # ============================================================================ #
 
-COMFY_PROCESS: Optional[subprocess.Popen] = None
-COMFY_BOOT_LOCK = threading.Lock()
-
-
 def check_comfy_health() -> bool:
     try:
         r = requests.get(f"http://{COMFY_HOST}/", timeout=2)
@@ -144,40 +140,13 @@ def check_comfy_health() -> bool:
         return False
 
 
-def start_comfyui_server():
-    global COMFY_PROCESS
-    with COMFY_BOOT_LOCK:
+def ensure_comfyui_ready(timeout_seconds: int = 30) -> bool:
+    start_time = time.time()
+    while time.time() - start_time < timeout_seconds:
         if check_comfy_health():
-            logger.info("ComfyUI server is already running and healthy.")
-            return
-
-        logger.info(f"Starting headless ComfyUI server from {COMFY_DIR}...")
-        cmd = [
-            sys.executable,
-            "main.py",
-            "--listen", "127.0.0.1",
-            "--port", "8188",
-            "--highvram",
-            "--dont-upcast-attention",
-            "--disable-auto-launch",
-        ]
-        COMFY_PROCESS = subprocess.Popen(
-            cmd,
-            cwd=COMFY_DIR,
-            stdout=subprocess.PIPE,
-            stderr=subprocess.STDOUT,
-            text=True,
-        )
-
-        # Wait for server to come online
-        start_time = time.time()
-        while time.time() - start_time < 90:
-            if check_comfy_health():
-                logger.info(f"✅ ComfyUI is up and running in {time.time() - start_time:.2f}s!")
-                return
-            time.sleep(1)
-
-        raise RuntimeError("ComfyUI server failed to start within 90 seconds.")
+            return True
+        time.sleep(1)
+    return False
 
 
 def load_default_workflow() -> Dict[str, Any]:
@@ -242,7 +211,8 @@ def handler(event: Dict[str, Any]) -> Dict[str, Any]:
     job_input = event.get("input", {})
 
     if not check_comfy_health():
-        start_comfyui_server()
+        if not ensure_comfyui_ready(timeout_seconds=20):
+            return {"status": "FAILED", "error": f"ComfyUI server at {COMFY_HOST} is not healthy"}
 
     # Determine workflow: custom raw workflow or generated from parameters
     if "workflow" in job_input and isinstance(job_input["workflow"], dict):
@@ -378,7 +348,9 @@ if __name__ == "__main__":
     logger.info(f"🎨 Default Checkpoint: {CHECKPOINT_NAME}")
     logger.info("=" * 60)
 
-    start_comfyui_server()
+    if not ensure_comfyui_ready(timeout_seconds=30):
+        logger.error(f"❌ ComfyUI failed to respond on {COMFY_HOST}")
+        sys.exit(1)
 
     start_params = {
         "handler": handler,
