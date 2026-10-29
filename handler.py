@@ -317,23 +317,24 @@ def build_workflow_from_inputs(inputs: Dict[str, Any]) -> Tuple[Dict[str, Any], 
         with open(WORKFLOW_NOOBAI_PATH, "r", encoding="utf-8") as f:
             workflow = json.load(f)
 
+        # NoobAI SDXL Danbooru token prioritization: quality anchor must lead prompt
         if NOOBAI_QUALITY_BOOSTER not in raw_prompt:
-            positive_text = f"{raw_prompt}, {NOOBAI_QUALITY_BOOSTER}"
+            positive_text = f"{NOOBAI_QUALITY_BOOSTER}, {raw_prompt}"
         else:
             positive_text = raw_prompt
 
         if custom_negative:
-            negative_text = f"{custom_negative}, {NOOBAI_NEGATIVE_DEFAULT}"
+            negative_text = f"{NOOBAI_NEGATIVE_DEFAULT}, {custom_negative}"
         else:
             negative_text = NOOBAI_NEGATIVE_DEFAULT
 
         width = int(inputs.get("width", 832))
         height = int(inputs.get("height", 1216))
-        steps = int(inputs.get("steps", 20))
-        steps = min(35, max(12, steps))
-        cfg = float(inputs.get("cfg", 4.8))
+        steps = int(inputs.get("steps", 25))
+        steps = min(35, max(15, steps))
+        cfg = float(inputs.get("cfg", 5.0))
 
-        sampler = inputs.get("sampler", "euler_ancestral")
+        sampler = inputs.get("sampler", "euler")
         scheduler = inputs.get("scheduler", "karras")
 
         workflow["1"]["inputs"]["ckpt_name"] = inputs.get("checkpoint", NOOBAI_CKPT_NAME)
