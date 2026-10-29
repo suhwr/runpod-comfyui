@@ -7,6 +7,7 @@ FROM nvidia/cuda:12.4.1-runtime-ubuntu22.04
 ENV DEBIAN_FRONTEND=noninteractive \
     PYTHONUNBUFFERED=1 \
     PIP_PREFER_BINARY=1 \
+    CC=/usr/bin/gcc \
     COMFY_DIR=/app/ComfyUI \
     COMFY_HOST=127.0.0.1:8188 \
     CHECKPOINT_NAME=NoobAI-XL-v1.1.safetensors \
@@ -17,6 +18,7 @@ ENV DEBIAN_FRONTEND=noninteractive \
 # 1. System dependencies
 RUN apt-get update && apt-get install -y --no-install-recommends \
     software-properties-common \
+    build-essential \
     && add-apt-repository -y ppa:deadsnakes/ppa \
     && apt-get update && apt-get install -y --no-install-recommends \
     python3.11 \

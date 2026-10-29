@@ -1,6 +1,15 @@
 #!/usr/bin/env bash
 set -e
 
+# ==============================================================================
+# COMPILER CHECK: Triton requires a C compiler (gcc) for JIT kernel compilation
+# ==============================================================================
+if ! command -v gcc >/dev/null 2>&1; then
+    echo "🔧 C compiler (gcc) not found! Installing build-essential for Triton..."
+    apt-get update -qq && apt-get install -y -qq --no-install-recommends build-essential gcc || true
+fi
+export CC="$(command -v gcc || echo '/usr/bin/gcc')"
+
 CHECKPOINT_DIR="/app/ComfyUI/models/checkpoints"
 LORA_DIR="/app/ComfyUI/models/loras"
 mkdir -p "$CHECKPOINT_DIR" "$LORA_DIR"
