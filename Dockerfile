@@ -1,6 +1,6 @@
 # ==============================================================================
 # Ultra-Optimized ComfyUI Anime Serverless Worker
-# Architecture: ComfyUI Headless Engine + SDXL (NoobAI-XL) + Hyper-SD 8-Step LoRA
+# Architecture: ComfyUI Headless Engine + Dual-Model (Nova Anime AM + NoobAI-XL)
 # ==============================================================================
 FROM nvidia/cuda:12.4.1-runtime-ubuntu22.04
 
@@ -47,8 +47,6 @@ RUN update-alternatives --install /usr/bin/python3 python3 /usr/bin/python3.11 1
 WORKDIR /app
 
 # 2. Install PyTorch 2.7.0 with CUDA 12.4
-# comfy-kitchen (required by ComfyUI) officially requires PyTorch >= 2.7.0
-# for torch.library.infer_schema support of built-in generic types (list[int], etc.)
 RUN python3 -m pip install --no-cache-dir \
     --index-url https://download.pytorch.org/whl/cu124 \
     --extra-index-url https://pypi.org/simple \
@@ -62,14 +60,34 @@ RUN git clone --depth 1 https://github.com/comfyanonymous/ComfyUI.git /app/Comfy
 COPY requirements.txt /app/requirements.txt
 RUN python3 -m pip install --no-cache-dir -r /app/requirements.txt
 
-# 5. Prepare folders
+# 5. Prepare model folders
 RUN mkdir -p /app/ComfyUI/models/checkpoints \
              /app/ComfyUI/models/diffusion_models \
              /app/ComfyUI/models/text_encoders \
              /app/ComfyUI/models/vae \
              /app/ComfyUI/output
 
-# 6. Copy handler, workflows, and startup script
+# 6. Bake models directly into the Docker image during build
+#    Eliminates runtime download latency completely across all GPU server rollings!
+# 6a. Nova Anime AM v6.0 UNet (~5.5 GB)
+RUN aria2c -c -x 16 -s 16 -k 1M --file-allocation=none \
+    --dir=/app/ComfyUI/models/diffusion_models --out=novaAnimeAM_v6029B.safetensors \
+    https://huggingface.co/mogaru99/novaAnimeAM_v6029B/resolve/main/novaAnimeAM_v6029B.safetensors
+
+# 6b. Qwen Text Encoder (~1.1 GB) & Qwen VAE (~240 MB)
+RUN aria2c -c -x 8 -s 8 -k 1M --file-allocation=none \
+    --dir=/app/ComfyUI/models/text_encoders --out=qwen_3_06b_base.safetensors \
+    https://huggingface.co/circlestone-labs/Anima/resolve/main/split_files/text_encoders/qwen_3_06b_base.safetensors \
+ && aria2c -c -x 8 -s 8 -k 1M --file-allocation=none \
+    --dir=/app/ComfyUI/models/vae --out=qwen_image_vae.safetensors \
+    https://huggingface.co/circlestone-labs/Anima/resolve/main/split_files/vae/qwen_image_vae.safetensors
+
+# 6c. NoobAI-XL v1.1 Checkpoint (~7.1 GB)
+RUN aria2c -c -x 16 -s 16 -k 1M --file-allocation=none \
+    --dir=/app/ComfyUI/models/checkpoints --out=NoobAI-XL-v1.1.safetensors \
+    https://huggingface.co/Laxhar/noobai-XL-1.1/resolve/main/NoobAI-XL-v1.1.safetensors
+
+# 7. Copy handler, workflows, and startup script
 COPY workflow_nova.json /app/workflow_nova.json
 COPY workflow_noobai.json /app/workflow_noobai.json
 COPY handler.py /app/handler.py

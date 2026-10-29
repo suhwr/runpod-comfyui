@@ -75,7 +75,9 @@ done
 # ==============================================================================
 # 2. Check & Download Nova Anime AM Components (Default Model)
 # ==============================================================================
-if [ ! -f "$DIFFUSION_DIR/$NOVA_UNET_NAME" ]; then
+if [ -f "$DIFFUSION_DIR/$NOVA_UNET_NAME" ]; then
+    echo "⚡ Nova UNet is already available: $DIFFUSION_DIR/$NOVA_UNET_NAME"
+else
     echo "⬇️ Downloading Nova Anime AM UNet ($NOVA_UNET_NAME)..."
     if command -v aria2c >/dev/null 2>&1; then
         aria2c -c -x 16 -s 16 -k 1M --file-allocation=none --dir="$DIFFUSION_DIR" --out="$NOVA_UNET_NAME" "$NOVA_UNET_URL"
@@ -85,7 +87,9 @@ if [ ! -f "$DIFFUSION_DIR/$NOVA_UNET_NAME" ]; then
     echo "✅ Nova UNet downloaded successfully!"
 fi
 
-if [ ! -f "$TEXT_ENCODER_DIR/$NOVA_CLIP_NAME" ]; then
+if [ -f "$TEXT_ENCODER_DIR/$NOVA_CLIP_NAME" ]; then
+    echo "⚡ Qwen Text Encoder is already available: $TEXT_ENCODER_DIR/$NOVA_CLIP_NAME"
+else
     echo "⬇️ Downloading Qwen Text Encoder ($NOVA_CLIP_NAME)..."
     if command -v aria2c >/dev/null 2>&1; then
         aria2c -c -x 8 -s 8 -k 1M --file-allocation=none --dir="$TEXT_ENCODER_DIR" --out="$NOVA_CLIP_NAME" "$NOVA_CLIP_URL"
@@ -95,7 +99,9 @@ if [ ! -f "$TEXT_ENCODER_DIR/$NOVA_CLIP_NAME" ]; then
     echo "✅ Qwen Text Encoder downloaded successfully!"
 fi
 
-if [ ! -f "$VAE_DIR/$NOVA_VAE_NAME" ]; then
+if [ -f "$VAE_DIR/$NOVA_VAE_NAME" ]; then
+    echo "⚡ Qwen VAE is already available: $VAE_DIR/$NOVA_VAE_NAME"
+else
     echo "⬇️ Downloading Qwen VAE ($NOVA_VAE_NAME)..."
     if command -v aria2c >/dev/null 2>&1; then
         aria2c -c -x 8 -s 8 -k 1M --file-allocation=none --dir="$VAE_DIR" --out="$NOVA_VAE_NAME" "$NOVA_VAE_URL"
@@ -107,15 +113,21 @@ fi
 
 # ==============================================================================
 # 3. Check & Download NoobAI-XL v1.1 Checkpoint (Optional / Secondary Model)
+#    If not already baked into the image, downloads in background without
+#    blocking worker startup so Nova requests can begin immediately!
 # ==============================================================================
-if [ ! -f "$CHECKPOINT_DIR/$NOOBAI_CKPT_NAME" ] && [ "${DOWNLOAD_NOOBAI:-true}" = "true" ]; then
-    echo "⬇️ Downloading NoobAI-XL v1.1 ($NOOBAI_CKPT_NAME)..."
-    if command -v aria2c >/dev/null 2>&1; then
-        aria2c -c -x 16 -s 16 -k 1M --file-allocation=none --dir="$CHECKPOINT_DIR" --out="$NOOBAI_CKPT_NAME" "$NOOBAI_CKPT_URL"
-    else
-        curl -L -# --retry 3 --connect-timeout 30 -o "$CHECKPOINT_DIR/$NOOBAI_CKPT_NAME" "$NOOBAI_CKPT_URL"
-    fi
-    echo "✅ NoobAI-XL v1.1 downloaded successfully!"
+if [ -f "$CHECKPOINT_DIR/$NOOBAI_CKPT_NAME" ]; then
+    echo "⚡ NoobAI-XL v1.1 is already available: $CHECKPOINT_DIR/$NOOBAI_CKPT_NAME"
+elif [ "${DOWNLOAD_NOOBAI:-true}" = "true" ]; then
+    echo "⬇️ Downloading NoobAI-XL v1.1 in background (non-blocking)..."
+    (
+        if command -v aria2c >/dev/null 2>&1; then
+            aria2c -c -x 16 -s 16 -k 1M --file-allocation=none --dir="$CHECKPOINT_DIR" --out="$NOOBAI_CKPT_NAME" "$NOOBAI_CKPT_URL"
+        else
+            curl -L -# --retry 3 --connect-timeout 30 -o "$CHECKPOINT_DIR/$NOOBAI_CKPT_NAME" "$NOOBAI_CKPT_URL"
+        fi
+        echo "✅ NoobAI-XL v1.1 background download complete!"
+    ) &
 fi
 
 # ==============================================================================
