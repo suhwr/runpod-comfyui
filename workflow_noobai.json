@@ -61,10 +61,10 @@
   "5": {
     "inputs": {
       "seed": 0,
-      "steps": 24,
-      "cfg": 4.2,
+      "steps": 20,
+      "cfg": 4.8,
       "sampler_name": "euler_ancestral",
-      "scheduler": "normal",
+      "scheduler": "karras",
       "denoise": 1.0,
       "model": [
         "1",

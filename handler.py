@@ -305,7 +305,7 @@ def build_workflow_from_inputs(inputs: Dict[str, Any]) -> Tuple[Dict[str, Any], 
     is_noobai = "noob" in model_choice
 
     seed = int(inputs.get("seed", -1))
-    if seed < 0:
+    if seed <= 0:
         seed = random.randint(1, 2**32 - 1)
 
     custom_negative = inputs.get("negative_prompt", "").strip()
@@ -328,12 +328,12 @@ def build_workflow_from_inputs(inputs: Dict[str, Any]) -> Tuple[Dict[str, Any], 
 
         width = int(inputs.get("width", 832))
         height = int(inputs.get("height", 1216))
-        steps = int(inputs.get("steps", 24))
+        steps = int(inputs.get("steps", 20))
         steps = min(35, max(12, steps))
-        cfg = float(inputs.get("cfg", 4.2))
+        cfg = float(inputs.get("cfg", 4.8))
 
         sampler = inputs.get("sampler", "euler_ancestral")
-        scheduler = inputs.get("scheduler", "normal")
+        scheduler = inputs.get("scheduler", "karras")
 
         workflow["1"]["inputs"]["ckpt_name"] = inputs.get("checkpoint", NOOBAI_CKPT_NAME)
         workflow["2"]["inputs"]["text"] = positive_text
