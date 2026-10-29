@@ -153,7 +153,14 @@ done
 
 echo "✅ ComfyUI is up and running healthy with Dual-Model support!"
 
-# 6. Start the serverless worker listener
+# 6. Pre-warm default model (Nova Anime AM) into GPU VRAM
+#    Loads weights into VRAM so the very first user request has 0s load latency!
+if [ "${PREWARM_MODEL:-true}" = "true" ]; then
+    echo "🔥 Running VRAM Pre-warming..."
+    python3 /app/warmup.py || true
+fi
+
+# 7. Start the serverless worker listener
 echo "🚀 Starting serverless worker listener..."
 cd /app
 exec python3 -u /app/handler.py

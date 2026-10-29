@@ -73,10 +73,11 @@ RUN mkdir -p /app/ComfyUI/models/checkpoints \
 COPY workflow_nova.json /app/workflow_nova.json
 COPY workflow_noobai.json /app/workflow_noobai.json
 COPY handler.py /app/handler.py
+COPY warmup.py /app/warmup.py
 COPY start.sh /app/start.sh
 COPY setup_volume.sh /app/setup_volume.sh
 COPY README.md /app/README.md
 
-RUN chmod +x /app/start.sh /app/setup_volume.sh
+RUN chmod +x /app/start.sh /app/setup_volume.sh /app/warmup.py
 
 CMD ["/app/start.sh"]
