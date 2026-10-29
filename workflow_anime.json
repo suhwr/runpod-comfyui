@@ -1,17 +1,17 @@
 {
   "1": {
     "inputs": {
-      "ckpt_name": "NoobAI-XL-v1.1.safetensors"
+      "ckpt_name": "novaAnimeXL_ilV100.safetensors"
     },
     "class_type": "CheckpointLoaderSimple",
     "_meta": {
-      "title": "Load Checkpoint"
+      "title": "Load Checkpoint (Nova Anime XL)"
     }
   },
   "10": {
     "inputs": {
       "lora_name": "Hyper-SDXL-8steps-CFG-lora.safetensors",
-      "strength_model": 1.0,
+      "strength_model": 0.8,
       "strength_clip": 0.8,
       "model": [
         "1",
@@ -67,8 +67,8 @@
   "5": {
     "inputs": {
       "seed": 0,
-      "steps": 8,
-      "cfg": 5.0,
+      "steps": 12,
+      "cfg": 3.0,
       "sampler_name": "euler",
       "scheduler": "sgm_uniform",
       "denoise": 1.0,

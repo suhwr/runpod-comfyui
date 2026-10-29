@@ -47,17 +47,17 @@ if ! command -v aria2c >/dev/null 2>&1; then
     apt-get update -qq && apt-get install -y -qq aria2
 fi
 
-# ─── Download NoobAI-XL v1.1 Checkpoint (~7.1GB) ───────────────────────────
-CHECKPOINT_NAME="NoobAI-XL-v1.1.safetensors"
+# ─── Download Nova Anime XL (Illustrious v10.0) Checkpoint (~6.9GB) ───────
+CHECKPOINT_NAME="novaAnimeXL_ilV100.safetensors"
 CHECKPOINT_PATH="$CHECKPOINTS_DIR/$CHECKPOINT_NAME"
-CHECKPOINT_URL="https://huggingface.co/Laxhar/noobai-XL-1.1/resolve/main/NoobAI-XL-v1.1.safetensors"
+CHECKPOINT_URL="https://huggingface.co/frankjoshua/novaAnimeXL_ilV100/resolve/main/novaAnimeXL_ilV100.safetensors"
 
 if [ -f "$CHECKPOINT_PATH" ]; then
     SIZE=$(du -sh "$CHECKPOINT_PATH" | cut -f1)
     echo "✅ Checkpoint already exists ($SIZE) — skipping download."
 else
     echo ""
-    echo "⬇️  Downloading NoobAI-XL v1.1 (~7.1GB)..."
+    echo "⬇️  Downloading Nova Anime XL (~6.9GB)..."
     echo "    Destination: $CHECKPOINT_PATH"
     echo "    Using 16-stream accelerated download..."
     aria2c \

@@ -14,7 +14,7 @@ CHECKPOINT_DIR="/app/ComfyUI/models/checkpoints"
 LORA_DIR="/app/ComfyUI/models/loras"
 mkdir -p "$CHECKPOINT_DIR" "$LORA_DIR"
 
-MODEL_NAME="${CHECKPOINT_NAME:-NoobAI-XL-v1.1.safetensors}"
+MODEL_NAME="${CHECKPOINT_NAME:-novaAnimeXL_ilV100.safetensors}"
 MODEL_PATH="$CHECKPOINT_DIR/$MODEL_NAME"
 
 LORA_NAME="${LORA_NAME:-Hyper-SDXL-8steps-CFG-lora.safetensors}"

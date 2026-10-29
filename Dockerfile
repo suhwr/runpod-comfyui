@@ -10,8 +10,8 @@ ENV DEBIAN_FRONTEND=noninteractive \
     CC=/usr/bin/gcc \
     COMFY_DIR=/app/ComfyUI \
     COMFY_HOST=127.0.0.1:8188 \
-    CHECKPOINT_NAME=NoobAI-XL-v1.1.safetensors \
-    CHECKPOINT_URL=https://huggingface.co/Laxhar/noobai-XL-1.1/resolve/main/NoobAI-XL-v1.1.safetensors \
+    CHECKPOINT_NAME=novaAnimeXL_ilV100.safetensors \
+    CHECKPOINT_URL=https://huggingface.co/frankjoshua/novaAnimeXL_ilV100/resolve/main/novaAnimeXL_ilV100.safetensors \
     LORA_NAME=Hyper-SDXL-8steps-CFG-lora.safetensors \
     LORA_URL=https://huggingface.co/ByteDance/Hyper-SD/resolve/main/Hyper-SDXL-8steps-CFG-lora.safetensors
 
