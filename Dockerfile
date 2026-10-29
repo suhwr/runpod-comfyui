@@ -2,7 +2,7 @@
 # Ultra-Optimized ComfyUI Anime Serverless Worker
 # Architecture: ComfyUI Headless Engine + SDXL (NoobAI-XL) + Hyper-SD 8-Step LoRA
 # ==============================================================================
-FROM nvidia/cuda:12.4.1-cudnn-devel-ubuntu22.04
+FROM nvidia/cuda:12.4.1-runtime-ubuntu22.04
 
 ENV DEBIAN_FRONTEND=noninteractive \
     PYTHONUNBUFFERED=1 \
@@ -25,7 +25,6 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     ffmpeg \
     libgl1-mesa-glx \
     libglib2.0-0 \
-    build-essential \
     curl \
     git \
     wget \
