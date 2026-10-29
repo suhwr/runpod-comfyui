@@ -120,7 +120,6 @@ python3 main.py \
     --port 8188 \
     --fast \
     --highvram \
-    --dont-upcast-attention \
     --disable-auto-launch &
 
 COMFY_PID=$!

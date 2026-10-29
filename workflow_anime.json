@@ -12,7 +12,7 @@
     "inputs": {
       "lora_name": "Hyper-SDXL-8steps-CFG-lora.safetensors",
       "strength_model": 1.0,
-      "strength_clip": 1.0,
+      "strength_clip": 0.8,
       "model": [
         "1",
         0
@@ -29,7 +29,7 @@
   },
   "2": {
     "inputs": {
-      "text": "1girl, silver hair, cat ears, school uniform, masterpiece, best quality, very aesthetic",
+      "text": "1girl, silver hair, cat ears, school uniform, masterpiece, best quality, newest, absurdres, highres, safe",
       "clip": [
         "10",
         1
@@ -42,7 +42,7 @@
   },
   "3": {
     "inputs": {
-      "text": "lowres, bad anatomy, bad hands, text, error, missing fingers, extra digit, fewer digits, cropped, worst quality, low quality, normal quality, jpeg artifacts, signature, watermark, username, blurry",
+      "text": "worst quality, old, early, low quality, lowres, sketch, rough sketch, crayon, child drawing, lineart, monochrome, signature, watermark, username, bad anatomy, bad hands, missing fingers, extra digits, fewer digits, blurry",
       "clip": [
         "10",
         1
@@ -69,8 +69,8 @@
       "seed": 0,
       "steps": 8,
       "cfg": 5.0,
-      "sampler_name": "euler_ancestral",
-      "scheduler": "karras",
+      "sampler_name": "euler",
+      "scheduler": "sgm_uniform",
       "denoise": 1.0,
       "model": [
         "10",

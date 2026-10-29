@@ -34,12 +34,12 @@ MAX_CONCURRENCY = max(1, int(os.environ.get("MAX_CONCURRENCY", "1")))
 
 WORKFLOW_TEMPLATE_PATH = os.path.join(os.path.dirname(__file__), "workflow_anime.json")
 
-# Default quality tags for anime generation
-ANIME_QUALITY_BOOSTER = "masterpiece, best quality, very aesthetic, highly detailed"
+# Default quality tags for NoobAI-XL / Illustrious anime generation
+ANIME_QUALITY_BOOSTER = "masterpiece, best quality, newest, absurdres, highres, safe"
 ANIME_NEGATIVE_DEFAULT = (
-    "lowres, bad anatomy, bad hands, text, error, missing fingers, extra digit, "
-    "fewer digits, cropped, worst quality, low quality, normal quality, "
-    "jpeg artifacts, signature, watermark, username, blurry, artist name"
+    "worst quality, old, early, low quality, lowres, sketch, rough sketch, crayon, "
+    "child drawing, lineart, monochrome, greyscale, signature, watermark, username, "
+    "bad anatomy, bad hands, missing fingers, extra digits, fewer digits, blurry"
 )
 
 # ============================================================================ #
@@ -190,6 +190,8 @@ def build_workflow_from_inputs(inputs: Dict[str, Any]) -> Tuple[Dict[str, Any], 
     workflow["1"]["inputs"]["ckpt_name"] = ckpt_override
     if "10" in workflow and "inputs" in workflow["10"]:
         workflow["10"]["inputs"]["lora_name"] = lora_override
+        workflow["10"]["inputs"]["strength_model"] = float(inputs.get("lora_strength", 1.0))
+        workflow["10"]["inputs"]["strength_clip"] = float(inputs.get("lora_clip", 0.8))
     workflow["2"]["inputs"]["text"] = positive_text
     workflow["3"]["inputs"]["text"] = negative_text
     workflow["4"]["inputs"]["width"] = width
@@ -197,6 +199,8 @@ def build_workflow_from_inputs(inputs: Dict[str, Any]) -> Tuple[Dict[str, Any], 
     workflow["5"]["inputs"]["seed"] = seed
     workflow["5"]["inputs"]["steps"] = steps
     workflow["5"]["inputs"]["cfg"] = cfg
+    workflow["5"]["inputs"]["sampler_name"] = inputs.get("sampler", "euler")
+    workflow["5"]["inputs"]["scheduler"] = inputs.get("scheduler", "sgm_uniform")
 
     return workflow, seed
 
