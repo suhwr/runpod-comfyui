@@ -46,13 +46,14 @@ NOOBAI_CKPT_NAME = os.environ.get("NOOBAI_CKPT_NAME", "NoobAI-XL-v1.1.safetensor
 
 # Default quality tags (Enhanced for 2.5D depth, rich background, and cinematic lighting)
 NOVA_QUALITY_BOOSTER = (
-    "masterpiece, best quality, highly detailed, expressive eyes, aesthetic, "
-    "cinematic lighting, detailed background, atmospheric, depth of field"
+    "masterpiece, best quality, 2.5D anime style, highly detailed, expressive eyes, "
+    "volumetric lighting, subsurface scattering, ambient occlusion, detailed scenery background, "
+    "cinematic composition, atmospheric depth"
 )
 NOVA_NEGATIVE_DEFAULT = (
-    "worst quality, low quality, score_1, score_2, score_3, blurry, jpeg artifacts, sepia, "
-    "signature, watermark, simple background, white background, flat color, flat shading, "
-    "bad anatomy, bad hands, sketch, amateur"
+    "worst quality, low quality, blurry, jpeg artifacts, sepia, signature, watermark, "
+    "flat 2D, flat color, flat shading, simple background, white background, blank background, "
+    "bad lighting, washed out, bad anatomy, bad hands, sketch, amateur, 3d plastic"
 )
 
 NOOBAI_QUALITY_BOOSTER = "masterpiece, best quality, newest, absurdres, highres, safe, very aesthetic, dynamic angle, detailed background"
@@ -363,7 +364,7 @@ def build_workflow_from_inputs(inputs: Dict[str, Any]) -> Tuple[Dict[str, Any], 
             negative_text = NOVA_NEGATIVE_DEFAULT
 
         width = int(inputs.get("width", 768))
-        height = int(inputs.get("height", 960))
+        height = int(inputs.get("height", 1024))
         steps = int(inputs.get("steps", 11))
         steps = min(30, max(9, steps))
         cfg = float(inputs.get("cfg", 2.4))

@@ -31,7 +31,7 @@
   },
   "4": {
     "inputs": {
-      "text": "1girl, silver hair, cat ears, school uniform, masterpiece, best quality, highly detailed, expressive eyes, aesthetic, cinematic lighting, detailed background, atmospheric, depth of field",
+      "text": "1girl, silver hair, cat ears, school uniform, masterpiece, best quality, 2.5D anime style, highly detailed, expressive eyes, volumetric lighting, subsurface scattering, ambient occlusion, detailed scenery background, cinematic composition, atmospheric depth",
       "clip": [
         "2",
         0
@@ -44,7 +44,7 @@
   },
   "5": {
     "inputs": {
-      "text": "worst quality, low quality, score_1, score_2, score_3, blurry, jpeg artifacts, sepia, signature, watermark, simple background, white background, flat color, flat shading, bad anatomy, bad hands, sketch, amateur",
+      "text": "worst quality, low quality, blurry, jpeg artifacts, sepia, signature, watermark, flat 2D, flat color, flat shading, simple background, white background, blank background, bad lighting, washed out, bad anatomy, bad hands, sketch, amateur, 3d plastic",
       "clip": [
         "2",
         0
@@ -58,7 +58,7 @@
   "6": {
     "inputs": {
       "width": 768,
-      "height": 960,
+      "height": 1024,
       "batch_size": 1
     },
     "class_type": "EmptyLatentImage",
