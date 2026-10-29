@@ -25,6 +25,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     ffmpeg \
     libgl1-mesa-glx \
     libglib2.0-0 \
+    aria2 \
     curl \
     git \
     wget \
@@ -39,11 +40,12 @@ RUN update-alternatives --install /usr/bin/python3 python3 /usr/bin/python3.11 1
 
 WORKDIR /app
 
-# 2. Install PyTorch with CUDA 12.4
+# 2. Install PyTorch 2.6.0 with CUDA 12.4
+# PyTorch 2.6.0 is required by modern ComfyUI / comfy-kitchen for torch.library custom ops list[int]
 RUN python3 -m pip install --no-cache-dir \
     --index-url https://download.pytorch.org/whl/cu124 \
     --extra-index-url https://pypi.org/simple \
-    torch==2.4.1 torchvision==0.19.1 torchaudio==2.4.1
+    torch==2.6.0 torchvision==0.21.0 torchaudio==2.6.0
 
 # 3. Clone ComfyUI repository & install dependencies
 RUN git clone --depth 1 https://github.com/comfyanonymous/ComfyUI.git /app/ComfyUI \

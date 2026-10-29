@@ -11,27 +11,49 @@ MODEL_PATH="$CHECKPOINT_DIR/$MODEL_NAME"
 LORA_NAME="${LORA_NAME:-Hyper-SDXL-8steps-CFG-lora.safetensors}"
 LORA_PATH="$LORA_DIR/$LORA_NAME"
 
-# 1. Check & Download LoRA if not present (~400MB)
+# 1. Volume Auto-Detection (Zero Cold-Start if using persistent Network Volume)
+for VOL in "/runpod-volume" "/workspace" "/volume"; do
+    if [ -f "$VOL/models/$MODEL_NAME" ]; then
+        echo "⚡ Found checkpoint in persistent volume ($VOL/models/$MODEL_NAME)! Symlinking..."
+        ln -sf "$VOL/models/$MODEL_NAME" "$MODEL_PATH"
+        break
+    elif [ -f "$VOL/$MODEL_NAME" ]; then
+        echo "⚡ Found checkpoint in persistent volume ($VOL/$MODEL_NAME)! Symlinking..."
+        ln -sf "$VOL/$MODEL_NAME" "$MODEL_PATH"
+        break
+    fi
+done
+
+# 2. Check & Download LoRA if not present (~400MB)
 if [ ! -f "$LORA_PATH" ] && [ -n "$LORA_URL" ]; then
     echo "⬇️ Downloading LoRA $LORA_NAME from $LORA_URL..."
-    curl -L --retry 3 --connect-timeout 30 -o "$LORA_PATH" "$LORA_URL"
+    if command -v aria2c >/dev/null 2>&1; then
+        aria2c -c -x 8 -s 8 -k 1M --dir="$LORA_DIR" --out="$LORA_NAME" "$LORA_URL"
+    else
+        curl -L --retry 3 --connect-timeout 30 -o "$LORA_PATH" "$LORA_URL"
+    fi
     echo "✅ LoRA $LORA_NAME downloaded successfully!"
 fi
 
-# 2. Check & Download Checkpoint if not present (~7.1GB)
+# 3. Check & Download Checkpoint if not present (~7.1GB)
 if [ ! -f "$MODEL_PATH" ] && [ -n "$CHECKPOINT_URL" ]; then
     echo "⬇️ Downloading Checkpoint $MODEL_NAME from $CHECKPOINT_URL..."
-    echo "⏳ Note: Model is ~7.1GB. Download is in progress, please check progress below..."
-    curl -L -# --retry 3 --connect-timeout 30 -o "$MODEL_PATH" "$CHECKPOINT_URL"
+    echo "⚡ Using multi-stream accelerator for maximum download throughput..."
+    if command -v aria2c >/dev/null 2>&1; then
+        aria2c -c -x 16 -s 16 -k 1M --dir="$CHECKPOINT_DIR" --out="$MODEL_NAME" "$CHECKPOINT_URL"
+    else
+        curl -L -# --retry 3 --connect-timeout 30 -o "$MODEL_PATH" "$CHECKPOINT_URL"
+    fi
     echo "✅ Checkpoint $MODEL_NAME downloaded successfully!"
 fi
 
-# 3. Launch headless ComfyUI in the background
-echo "🚀 Launching headless ComfyUI server on 127.0.0.1:8188..."
+# 4. Launch headless ComfyUI in the background with speed optimizations
+echo "🚀 Launching headless ComfyUI daemon on 127.0.0.1:8188 (--fast --highvram)..."
 cd /app/ComfyUI
 python3 main.py \
     --listen 127.0.0.1 \
     --port 8188 \
+    --fast \
     --highvram \
     --dont-upcast-attention \
     --disable-auto-launch &
@@ -39,7 +61,7 @@ python3 main.py \
 COMFY_PID=$!
 echo "ComfyUI daemon started with PID: $COMFY_PID"
 
-# 4. Wait until ComfyUI responds 200 OK
+# 5. Wait until ComfyUI responds 200 OK
 echo "⏳ Waiting for ComfyUI to become ready..."
 MAX_WAIT=120
 WAITED=0
@@ -59,7 +81,7 @@ done
 
 echo "✅ ComfyUI is up and running healthy!"
 
-# 5. Start the serverless handler event loop
+# 6. Start the serverless handler event loop
 echo "🚀 Starting serverless worker listener..."
 cd /app
 exec python3 -u /app/handler.py
