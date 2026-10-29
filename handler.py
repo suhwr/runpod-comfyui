@@ -295,24 +295,38 @@ def handler(event: Dict[str, Any]) -> Dict[str, Any]:
         if not output_images:
             return {"status": "FAILED", "error": "No output images found in ComfyUI history"}
 
-        # Upload generated images via fallback chain
+        # Return Base64 directly for maximum speed & zero external dependency.
+        # Fallback to URL upload only if explicitly requested via "upload_url": true
         uploaded_results: List[Dict[str, Any]] = []
-        catbox_key = job_input.get("catbox_key", DEFAULT_CATBOX_USER_HASH)
+        force_url_upload = bool(job_input.get("upload_url", False))
 
         for img_path in output_images:
             file_size = img_path.stat().st_size
-            try:
-                url, storage = upload_with_fallback(img_path, catbox_key)
+
+            if not force_url_upload and file_size < 15 * 1024 * 1024:
+                with open(img_path, "rb") as bf:
+                    b64 = base64.b64encode(bf.read()).decode("utf-8")
                 uploaded_results.append({
-                    "url": url,
+                    "url": "",
+                    "base64": b64,
                     "file_name": img_path.name,
                     "size_bytes": file_size,
-                    "storage": storage,
+                    "storage": "base64",
                 })
-                logger.info(f"[{job_id}] ✨ Image uploaded to {storage}: {url}")
-            except Exception as up_err:
-                logger.warning(f"[{job_id}] ⚠️ Upload failed ({up_err}), falling back to Base64...")
-                if file_size < 10 * 1024 * 1024:
+                logger.info(f"[{job_id}] ✨ Returned base64 image ({round(file_size / 1024 / 1024, 2)} MB) directly")
+            else:
+                catbox_key = job_input.get("catbox_key", DEFAULT_CATBOX_USER_HASH)
+                try:
+                    url, storage = upload_with_fallback(img_path, catbox_key)
+                    uploaded_results.append({
+                        "url": url,
+                        "file_name": img_path.name,
+                        "size_bytes": file_size,
+                        "storage": storage,
+                    })
+                    logger.info(f"[{job_id}] ✨ Image uploaded to {storage}: {url}")
+                except Exception as up_err:
+                    logger.warning(f"[{job_id}] ⚠️ Upload failed ({up_err}), falling back to Base64...")
                     with open(img_path, "rb") as bf:
                         b64 = base64.b64encode(bf.read()).decode("utf-8")
                     uploaded_results.append({
