@@ -10,10 +10,14 @@ ENV DEBIAN_FRONTEND=noninteractive \
     CC=/usr/bin/gcc \
     COMFY_DIR=/app/ComfyUI \
     COMFY_HOST=127.0.0.1:8188 \
-    CHECKPOINT_NAME=novaAnimeXL_ilV100.safetensors \
-    CHECKPOINT_URL=https://huggingface.co/frankjoshua/novaAnimeXL_ilV100/resolve/main/novaAnimeXL_ilV100.safetensors \
-    LORA_NAME=Hyper-SDXL-8steps-CFG-lora.safetensors \
-    LORA_URL=https://huggingface.co/ByteDance/Hyper-SD/resolve/main/Hyper-SDXL-8steps-CFG-lora.safetensors
+    NOVA_UNET_NAME=novaAnimeAM_v6029B.safetensors \
+    NOVA_UNET_URL=https://huggingface.co/mogaru99/novaAnimeAM_v6029B/resolve/main/novaAnimeAM_v6029B.safetensors \
+    NOVA_CLIP_NAME=qwen_3_06b_base.safetensors \
+    NOVA_CLIP_URL=https://huggingface.co/circlestone-labs/Anima/resolve/main/split_files/text_encoders/qwen_3_06b_base.safetensors \
+    NOVA_VAE_NAME=qwen_image_vae.safetensors \
+    NOVA_VAE_URL=https://huggingface.co/circlestone-labs/Anima/resolve/main/split_files/vae/qwen_image_vae.safetensors \
+    NOOBAI_CKPT_NAME=NoobAI-XL-v1.1.safetensors \
+    NOOBAI_CKPT_URL=https://huggingface.co/Laxhar/noobai-XL-1.1/resolve/main/NoobAI-XL-v1.1.safetensors
 
 # 1. System dependencies
 RUN apt-get update && apt-get install -y --no-install-recommends \
@@ -58,20 +62,21 @@ RUN git clone --depth 1 https://github.com/comfyanonymous/ComfyUI.git /app/Comfy
 COPY requirements.txt /app/requirements.txt
 RUN python3 -m pip install --no-cache-dir -r /app/requirements.txt
 
-# 5. Prepare folders & pre-download Hyper-SD 8-step LoRA (~400MB)
+# 5. Prepare folders
 RUN mkdir -p /app/ComfyUI/models/checkpoints \
-             /app/ComfyUI/models/loras \
+             /app/ComfyUI/models/diffusion_models \
+             /app/ComfyUI/models/text_encoders \
              /app/ComfyUI/models/vae \
-             /app/ComfyUI/output \
-    && curl -L --retry 3 --connect-timeout 30 -o /app/ComfyUI/models/loras/Hyper-SDXL-8steps-CFG-lora.safetensors \
-       https://huggingface.co/ByteDance/Hyper-SD/resolve/main/Hyper-SDXL-8steps-CFG-lora.safetensors
+             /app/ComfyUI/output
 
-# 6. Copy handler, default anime workflow, and startup script
-COPY workflow_anime.json /app/workflow_anime.json
+# 6. Copy handler, workflows, and startup script
+COPY workflow_nova.json /app/workflow_nova.json
+COPY workflow_noobai.json /app/workflow_noobai.json
 COPY handler.py /app/handler.py
 COPY start.sh /app/start.sh
+COPY setup_volume.sh /app/setup_volume.sh
 COPY README.md /app/README.md
 
-RUN chmod +x /app/start.sh
+RUN chmod +x /app/start.sh /app/setup_volume.sh
 
 CMD ["/app/start.sh"]

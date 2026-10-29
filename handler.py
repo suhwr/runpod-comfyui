@@ -27,18 +27,30 @@ logger = logging.getLogger("comfyui-worker")
 
 COMFY_DIR = os.environ.get("COMFY_DIR", "/app/ComfyUI")
 COMFY_HOST = os.environ.get("COMFY_HOST", "127.0.0.1:8188")
-CHECKPOINT_NAME = os.environ.get("CHECKPOINT_NAME", "novaAnimeXL_ilV100.safetensors")
-LORA_NAME = os.environ.get("LORA_NAME", "Hyper-SDXL-8steps-CFG-lora.safetensors")
 DEFAULT_CATBOX_USER_HASH = os.environ.get("CATBOX_KEY", "")
 MAX_CONCURRENCY = max(1, int(os.environ.get("MAX_CONCURRENCY", "1")))
 
-WORKFLOW_TEMPLATE_PATH = os.path.join(os.path.dirname(__file__), "workflow_anime.json")
+# File paths
+TEMPLATE_DIR = os.path.dirname(__file__)
+WORKFLOW_NOVA_PATH = os.path.join(TEMPLATE_DIR, "workflow_nova.json")
+WORKFLOW_NOOBAI_PATH = os.path.join(TEMPLATE_DIR, "workflow_noobai.json")
 
-# Default quality tags for NoobAI-XL / Illustrious anime generation
-ANIME_QUALITY_BOOSTER = "masterpiece, best quality, newest, absurdres, highres, safe"
-ANIME_NEGATIVE_DEFAULT = (
+# Model Filenames
+NOVA_UNET_NAME = os.environ.get("NOVA_UNET_NAME", "novaAnimeAM_v6029B.safetensors")
+NOVA_CLIP_NAME = os.environ.get("NOVA_CLIP_NAME", "qwen_3_06b_base.safetensors")
+NOVA_VAE_NAME = os.environ.get("NOVA_VAE_NAME", "qwen_image_vae.safetensors")
+NOOBAI_CKPT_NAME = os.environ.get("NOOBAI_CKPT_NAME", "NoobAI-XL-v1.1.safetensors")
+
+# Default quality tags
+NOVA_QUALITY_BOOSTER = "masterpiece, best quality, score_7, safe, anime"
+NOVA_NEGATIVE_DEFAULT = (
+    "worst quality, low quality, score_1, score_2, score_3, blurry, jpeg artifacts, sepia, signature, watermark"
+)
+
+NOOBAI_QUALITY_BOOSTER = "masterpiece, best quality, newest, absurdres, highres, safe"
+NOOBAI_NEGATIVE_DEFAULT = (
     "worst quality, old, early, low quality, lowres, sketch, rough sketch, crayon, "
-    "child drawing, lineart, monochrome, greyscale, signature, watermark, username, "
+    "child drawing, lineart, monochrome, signature, watermark, username, "
     "bad anatomy, bad hands, missing fingers, extra digits, fewer digits, blurry"
 )
 
@@ -149,60 +161,96 @@ def ensure_comfyui_ready(timeout_seconds: int = 30) -> bool:
     return False
 
 
-def load_default_workflow() -> Dict[str, Any]:
-    with open(WORKFLOW_TEMPLATE_PATH, "r", encoding="utf-8") as f:
-        return json.load(f)
-
-
-def build_workflow_from_inputs(inputs: Dict[str, Any]) -> Tuple[Dict[str, Any], int]:
+def build_workflow_from_inputs(inputs: Dict[str, Any]) -> Tuple[Dict[str, Any], int, str]:
+    """Builds workflow based on chosen model ('nova' [default] or 'noobai')."""
     raw_prompt = inputs.get("prompt", "").strip()
     if not raw_prompt:
         raise ValueError("prompt is required")
 
-    # Positive prompt with auto quality booster
-    if ANIME_QUALITY_BOOSTER not in raw_prompt:
-        positive_text = f"{raw_prompt}, {ANIME_QUALITY_BOOSTER}"
-    else:
-        positive_text = raw_prompt
-
-    # Negative prompt
-    custom_negative = inputs.get("negative_prompt", "").strip()
-    if custom_negative:
-        negative_text = f"{custom_negative}, {ANIME_NEGATIVE_DEFAULT}"
-    else:
-        negative_text = ANIME_NEGATIVE_DEFAULT
-
-    width = int(inputs.get("width", 832))
-    height = int(inputs.get("height", 1216))
-    steps = int(inputs.get("steps", 12))
-    # Cap steps to 20 maximum to guarantee fast execution and prevent abuse
-    steps = min(20, max(6, steps))
-    cfg = float(inputs.get("cfg", 3.0))
+    model_choice = str(inputs.get("model", "nova")).strip().lower()
+    is_noobai = "noob" in model_choice
 
     seed = int(inputs.get("seed", -1))
     if seed < 0:
         seed = random.randint(1, 2**32 - 1)
 
-    ckpt_override = inputs.get("model") or inputs.get("checkpoint") or CHECKPOINT_NAME
-    lora_override = inputs.get("lora") or LORA_NAME
+    custom_negative = inputs.get("negative_prompt", "").strip()
 
-    workflow = load_default_workflow()
-    workflow["1"]["inputs"]["ckpt_name"] = ckpt_override
-    if "10" in workflow and "inputs" in workflow["10"]:
-        workflow["10"]["inputs"]["lora_name"] = lora_override
-        workflow["10"]["inputs"]["strength_model"] = float(inputs.get("lora_strength", 0.8))
-        workflow["10"]["inputs"]["strength_clip"] = float(inputs.get("lora_clip", 0.8))
-    workflow["2"]["inputs"]["text"] = positive_text
-    workflow["3"]["inputs"]["text"] = negative_text
-    workflow["4"]["inputs"]["width"] = width
-    workflow["4"]["inputs"]["height"] = height
-    workflow["5"]["inputs"]["seed"] = seed
-    workflow["5"]["inputs"]["steps"] = steps
-    workflow["5"]["inputs"]["cfg"] = cfg
-    workflow["5"]["inputs"]["sampler_name"] = inputs.get("sampler", "euler")
-    workflow["5"]["inputs"]["scheduler"] = inputs.get("scheduler", "sgm_uniform")
+    if is_noobai:
+        # ─── NOOBAI-XL v1.1 WORKFLOW (SDXL Native, no LoRA) ─────────────
+        active_model_name = "NoobAI-XL v1.1"
+        with open(WORKFLOW_NOOBAI_PATH, "r", encoding="utf-8") as f:
+            workflow = json.load(f)
 
-    return workflow, seed
+        if NOOBAI_QUALITY_BOOSTER not in raw_prompt:
+            positive_text = f"{raw_prompt}, {NOOBAI_QUALITY_BOOSTER}"
+        else:
+            positive_text = raw_prompt
+
+        if custom_negative:
+            negative_text = f"{custom_negative}, {NOOBAI_NEGATIVE_DEFAULT}"
+        else:
+            negative_text = NOOBAI_NEGATIVE_DEFAULT
+
+        width = int(inputs.get("width", 832))
+        height = int(inputs.get("height", 1216))
+        steps = int(inputs.get("steps", 20))
+        steps = min(35, max(12, steps))
+        cfg = float(inputs.get("cfg", 4.5))
+
+        sampler = inputs.get("sampler", "euler")
+        scheduler = inputs.get("scheduler", "normal")
+
+        workflow["1"]["inputs"]["ckpt_name"] = inputs.get("checkpoint", NOOBAI_CKPT_NAME)
+        workflow["2"]["inputs"]["text"] = positive_text
+        workflow["3"]["inputs"]["text"] = negative_text
+        workflow["4"]["inputs"]["width"] = width
+        workflow["4"]["inputs"]["height"] = height
+        workflow["5"]["inputs"]["seed"] = seed
+        workflow["5"]["inputs"]["steps"] = steps
+        workflow["5"]["inputs"]["cfg"] = cfg
+        workflow["5"]["inputs"]["sampler_name"] = sampler
+        workflow["5"]["inputs"]["scheduler"] = scheduler
+
+    else:
+        # ─── NOVA ANIME AM v6.0 (2.9B) WORKFLOW (Anima DiT + Qwen) ──────
+        active_model_name = "Nova Anime AM (2.9B)"
+        with open(WORKFLOW_NOVA_PATH, "r", encoding="utf-8") as f:
+            workflow = json.load(f)
+
+        if NOVA_QUALITY_BOOSTER not in raw_prompt:
+            positive_text = f"{raw_prompt}, {NOVA_QUALITY_BOOSTER}"
+        else:
+            positive_text = raw_prompt
+
+        if custom_negative:
+            negative_text = f"{custom_negative}, {NOVA_NEGATIVE_DEFAULT}"
+        else:
+            negative_text = NOVA_NEGATIVE_DEFAULT
+
+        width = int(inputs.get("width", 768))
+        height = int(inputs.get("height", 960))
+        steps = int(inputs.get("steps", 15))
+        steps = min(30, max(10, steps))
+        cfg = float(inputs.get("cfg", 2.0))
+
+        sampler = inputs.get("sampler", "er_sde")
+        scheduler = inputs.get("scheduler", "simple")
+
+        workflow["1"]["inputs"]["unet_name"] = inputs.get("unet_name", NOVA_UNET_NAME)
+        workflow["2"]["inputs"]["clip_name"] = inputs.get("clip_name", NOVA_CLIP_NAME)
+        workflow["3"]["inputs"]["vae_name"] = inputs.get("vae_name", NOVA_VAE_NAME)
+        workflow["4"]["inputs"]["text"] = positive_text
+        workflow["5"]["inputs"]["text"] = negative_text
+        workflow["6"]["inputs"]["width"] = width
+        workflow["6"]["inputs"]["height"] = height
+        workflow["7"]["inputs"]["seed"] = seed
+        workflow["7"]["inputs"]["steps"] = steps
+        workflow["7"]["inputs"]["cfg"] = cfg
+        workflow["7"]["inputs"]["sampler_name"] = sampler
+        workflow["7"]["inputs"]["scheduler"] = scheduler
+
+    return workflow, seed, active_model_name
 
 
 # ============================================================================ #
@@ -218,13 +266,14 @@ def handler(event: Dict[str, Any]) -> Dict[str, Any]:
         if not ensure_comfyui_ready(timeout_seconds=20):
             return {"status": "FAILED", "error": f"ComfyUI server at {COMFY_HOST} is not healthy"}
 
-    # Determine workflow: custom raw workflow or generated from parameters
+    # Determine workflow: custom raw workflow or built from inputs
     if "workflow" in job_input and isinstance(job_input["workflow"], dict):
         workflow = job_input["workflow"]
         seed = int(job_input.get("seed", -1))
+        active_model = "custom_workflow"
     else:
         try:
-            workflow, seed = build_workflow_from_inputs(job_input)
+            workflow, seed, active_model = build_workflow_from_inputs(job_input)
         except Exception as err:
             return {"status": "FAILED", "error": str(err)}
 
@@ -238,7 +287,7 @@ def handler(event: Dict[str, Any]) -> Dict[str, Any]:
 
     try:
         # Submit prompt to ComfyUI
-        logger.info(f"[{job_id}] 📤 Submitting workflow to ComfyUI /prompt...")
+        logger.info(f"[{job_id}] 📤 Submitting {active_model} workflow to ComfyUI...")
         queue_payload = {"prompt": workflow, "client_id": client_id}
         res = requests.post(f"http://{COMFY_HOST}/prompt", json=queue_payload, timeout=20)
         if res.status_code != 200:
@@ -248,7 +297,7 @@ def handler(event: Dict[str, Any]) -> Dict[str, Any]:
         if not prompt_id:
             return {"status": "FAILED", "error": "No prompt_id returned from ComfyUI"}
 
-        logger.info(f"[{job_id}] ⏳ Waiting for execution completion (prompt_id: {prompt_id})...")
+        logger.info(f"[{job_id}] ⏳ Waiting for completion (prompt_id: {prompt_id})...")
 
         # Wait for WebSocket events
         execution_done = False
@@ -269,7 +318,7 @@ def handler(event: Dict[str, Any]) -> Dict[str, Any]:
                 if data.get("prompt_id") == prompt_id:
                     return {
                         "status": "FAILED",
-                        "error": f"ComfyUI execution error in node {data.get('node_id')} ({data.get('node_type')}): {data.get('exception_message')}",
+                        "error": f"ComfyUI error in node {data.get('node_id')} ({data.get('node_type')}): {data.get('exception_message')}",
                     }
 
         if not execution_done:
@@ -326,6 +375,7 @@ def handler(event: Dict[str, Any]) -> Dict[str, Any]:
         total_elapsed = time.time() - start_time
         return {
             "status": "COMPLETED",
+            "model_used": active_model,
             "execution_time_seconds": round(total_elapsed, 2),
             "seed": seed,
             "images": uploaded_results,
@@ -347,9 +397,10 @@ def concurrency_controller(current_concurrency):
 
 if __name__ == "__main__":
     logger.info("=" * 60)
-    logger.info(f"🚀 Initializing ComfyUI Anime Serverless Worker (Concurrency: {MAX_CONCURRENCY})")
-    logger.info(f"📂 ComfyUI Path      : {COMFY_DIR}")
-    logger.info(f"🎨 Default Checkpoint: {CHECKPOINT_NAME}")
+    logger.info(f"🚀 Initializing Dual-Model ComfyUI Serverless Worker")
+    logger.info(f"📂 ComfyUI Path : {COMFY_DIR}")
+    logger.info(f"🎨 Model 1 (Default): Nova Anime AM (2.9B) [Anima DiT + Qwen]")
+    logger.info(f"🎨 Model 2          : NoobAI-XL v1.1 [SDXL Native]")
     logger.info("=" * 60)
 
     if not ensure_comfyui_ready(timeout_seconds=30):

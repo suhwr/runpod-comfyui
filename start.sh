@@ -10,109 +10,117 @@ if ! command -v gcc >/dev/null 2>&1; then
 fi
 export CC="$(command -v gcc || echo '/usr/bin/gcc')"
 
+DIFFUSION_DIR="/app/ComfyUI/models/diffusion_models"
+TEXT_ENCODER_DIR="/app/ComfyUI/models/text_encoders"
+VAE_DIR="/app/ComfyUI/models/vae"
 CHECKPOINT_DIR="/app/ComfyUI/models/checkpoints"
-LORA_DIR="/app/ComfyUI/models/loras"
-mkdir -p "$CHECKPOINT_DIR" "$LORA_DIR"
+mkdir -p "$DIFFUSION_DIR" "$TEXT_ENCODER_DIR" "$VAE_DIR" "$CHECKPOINT_DIR"
 
-MODEL_NAME="${CHECKPOINT_NAME:-novaAnimeXL_ilV100.safetensors}"
-MODEL_PATH="$CHECKPOINT_DIR/$MODEL_NAME"
+# ─── Dual Model Config ────────────────────────────────────────────────────────
+# Model 1: Nova Anime AM v6.0 (2.9B) [Default]
+NOVA_UNET_NAME="${NOVA_UNET_NAME:-novaAnimeAM_v6029B.safetensors}"
+NOVA_UNET_URL="${NOVA_UNET_URL:-https://huggingface.co/mogaru99/novaAnimeAM_v6029B/resolve/main/novaAnimeAM_v6029B.safetensors}"
 
-LORA_NAME="${LORA_NAME:-Hyper-SDXL-8steps-CFG-lora.safetensors}"
-LORA_PATH="$LORA_DIR/$LORA_NAME"
+NOVA_CLIP_NAME="${NOVA_CLIP_NAME:-qwen_3_06b_base.safetensors}"
+NOVA_CLIP_URL="${NOVA_CLIP_URL:-https://huggingface.co/circlestone-labs/Anima/resolve/main/split_files/text_encoders/qwen_3_06b_base.safetensors}"
 
-# ==============================================================================
-# PATCH: Safety net for comfy_kitchen list[int] incompatibility with PyTorch < 2.7
-# comfy_kitchen uses PEP-585 built-in generics (list[int]) which are only
-# supported by torch.library.infer_schema in PyTorch >= 2.7.
-# Dockerfile now uses PyTorch 2.7.0 so this normally won't be needed,
-# but we keep it as a safety net in case the running image is older.
-# ==============================================================================
-CKITCHEN_SITE="$(python3 -c 'import site; print(site.getsitepackages()[0])')/comfy_kitchen"
+NOVA_VAE_NAME="${NOVA_VAE_NAME:-qwen_image_vae.safetensors}"
+NOVA_VAE_URL="${NOVA_VAE_URL:-https://huggingface.co/circlestone-labs/Anima/resolve/main/split_files/vae/qwen_image_vae.safetensors}"
 
-# Check PyTorch version — only patch if < 2.7
-TORCH_VER=$(python3 -c "import torch; v=torch.__version__; parts=v.split('.')[:2]; print(int(parts[0])*100+int(parts[1]))" 2>/dev/null || echo "0")
-if [ "$TORCH_VER" -lt 207 ] && [ -d "$CKITCHEN_SITE" ]; then
-    echo "⚠️  PyTorch < 2.7 detected — patching comfy_kitchen for list[int] compatibility..."
-
-    find "$CKITCHEN_SITE" -name "*.py" | while read -r f; do
-        if grep -qE ": list\[|: dict\[|: tuple\[|: set\[" "$f" 2>/dev/null; then
-            # Inject typing import at top if not present
-            if ! grep -q "^import typing" "$f"; then
-                sed -i '1s/^/import typing\n/' "$f"
-            fi
-            # Replace bare PEP-585 builtin generics with typing equivalents
-            sed -i \
-                -e 's/: list\[int\]/: typing.List[int]/g' \
-                -e 's/: list\[float\]/: typing.List[float]/g' \
-                -e 's/: list\[bool\]/: typing.List[bool]/g' \
-                -e 's/: list\[str\]/: typing.List[str]/g' \
-                -e 's/: list\[torch\.Tensor\]/: typing.List[torch.Tensor]/g' \
-                -e 's/: list\[typing/: typing.List[typing/g' \
-                -e 's/: dict\[/: typing.Dict[/g' \
-                -e 's/: tuple\[/: typing.Tuple[/g' \
-                -e 's/: set\[/: typing.Set[/g' \
-                "$f"
-        fi
-    done
-
-    echo "✅ comfy_kitchen patch applied!"
-elif [ "$TORCH_VER" -ge 207 ]; then
-    echo "✅ PyTorch >= 2.7 detected — comfy_kitchen patch not needed."
-fi
+# Model 2: NoobAI-XL v1.1 [SDXL Native]
+NOOBAI_CKPT_NAME="${NOOBAI_CKPT_NAME:-NoobAI-XL-v1.1.safetensors}"
+NOOBAI_CKPT_URL="${NOOBAI_CKPT_URL:-https://huggingface.co/Laxhar/noobai-XL-1.1/resolve/main/NoobAI-XL-v1.1.safetensors}"
 
 # ==============================================================================
-
 # 1. Volume Auto-Detection (Zero Cold-Start if using persistent Network Volume)
-#    Checks both flat and nested /models/checkpoints + /models/loras layout
+# ==============================================================================
 for VOL in "/runpod-volume" "/workspace" "/volume"; do
     [ -d "$VOL" ] || continue
 
-    # Checkpoint auto-symlink
-    for CKPT_PATH in "$VOL/models/checkpoints/$MODEL_NAME" "$VOL/models/$MODEL_NAME" "$VOL/$MODEL_NAME"; do
-        if [ -f "$CKPT_PATH" ]; then
-            echo "⚡ Network Volume checkpoint found! Symlinking $CKPT_PATH -> $MODEL_PATH"
-            ln -sf "$CKPT_PATH" "$MODEL_PATH"
+    # Auto-symlink Nova components from volume
+    for FPATH in "$VOL/models/diffusion_models/$NOVA_UNET_NAME" "$VOL/models/$NOVA_UNET_NAME" "$VOL/$NOVA_UNET_NAME"; do
+        if [ -f "$FPATH" ]; then
+            echo "⚡ Found Nova UNet in volume! Symlinking $FPATH -> $DIFFUSION_DIR/$NOVA_UNET_NAME"
+            ln -sf "$FPATH" "$DIFFUSION_DIR/$NOVA_UNET_NAME"
             break
         fi
     done
 
-    # LoRA auto-symlink
-    for LORA_VOL_PATH in "$VOL/models/loras/$LORA_NAME" "$VOL/models/$LORA_NAME" "$VOL/$LORA_NAME"; do
-        if [ -f "$LORA_VOL_PATH" ]; then
-            echo "⚡ Network Volume LoRA found! Symlinking $LORA_VOL_PATH -> $LORA_PATH"
-            ln -sf "$LORA_VOL_PATH" "$LORA_PATH"
+    for FPATH in "$VOL/models/text_encoders/$NOVA_CLIP_NAME" "$VOL/models/$NOVA_CLIP_NAME" "$VOL/$NOVA_CLIP_NAME"; do
+        if [ -f "$FPATH" ]; then
+            echo "⚡ Found Qwen CLIP in volume! Symlinking $FPATH -> $TEXT_ENCODER_DIR/$NOVA_CLIP_NAME"
+            ln -sf "$FPATH" "$TEXT_ENCODER_DIR/$NOVA_CLIP_NAME"
             break
         fi
     done
 
-    # If checkpoint is now resolved, no need to check other volumes
-    [ -f "$MODEL_PATH" ] && break
+    for FPATH in "$VOL/models/vae/$NOVA_VAE_NAME" "$VOL/models/$NOVA_VAE_NAME" "$VOL/$NOVA_VAE_NAME"; do
+        if [ -f "$FPATH" ]; then
+            echo "⚡ Found Qwen VAE in volume! Symlinking $FPATH -> $VAE_DIR/$NOVA_VAE_NAME"
+            ln -sf "$FPATH" "$VAE_DIR/$NOVA_VAE_NAME"
+            break
+        fi
+    done
+
+    # Auto-symlink NoobAI-XL if in volume
+    for FPATH in "$VOL/models/checkpoints/$NOOBAI_CKPT_NAME" "$VOL/models/$NOOBAI_CKPT_NAME" "$VOL/$NOOBAI_CKPT_NAME"; do
+        if [ -f "$FPATH" ]; then
+            echo "⚡ Found NoobAI-XL in volume! Symlinking $FPATH -> $CHECKPOINT_DIR/$NOOBAI_CKPT_NAME"
+            ln -sf "$FPATH" "$CHECKPOINT_DIR/$NOOBAI_CKPT_NAME"
+            break
+        fi
+    done
 done
 
-# 2. Check & Download LoRA if not present (~400MB)
-if [ ! -f "$LORA_PATH" ] && [ -n "$LORA_URL" ]; then
-    echo "⬇️ Downloading LoRA $LORA_NAME from $LORA_URL..."
+# ==============================================================================
+# 2. Check & Download Nova Anime AM Components (Default Model)
+# ==============================================================================
+if [ ! -f "$DIFFUSION_DIR/$NOVA_UNET_NAME" ]; then
+    echo "⬇️ Downloading Nova Anime AM UNet ($NOVA_UNET_NAME)..."
     if command -v aria2c >/dev/null 2>&1; then
-        aria2c -c -x 8 -s 8 -k 1M --dir="$LORA_DIR" --out="$LORA_NAME" "$LORA_URL"
+        aria2c -c -x 16 -s 16 -k 1M --file-allocation=none --dir="$DIFFUSION_DIR" --out="$NOVA_UNET_NAME" "$NOVA_UNET_URL"
     else
-        curl -L --retry 3 --connect-timeout 30 -o "$LORA_PATH" "$LORA_URL"
+        curl -L -# --retry 3 --connect-timeout 30 -o "$DIFFUSION_DIR/$NOVA_UNET_NAME" "$NOVA_UNET_URL"
     fi
-    echo "✅ LoRA $LORA_NAME downloaded successfully!"
+    echo "✅ Nova UNet downloaded successfully!"
 fi
 
-# 3. Check & Download Checkpoint if not present (~7.1GB)
-if [ ! -f "$MODEL_PATH" ] && [ -n "$CHECKPOINT_URL" ]; then
-    echo "⬇️ Downloading Checkpoint $MODEL_NAME from $CHECKPOINT_URL..."
-    echo "⚡ Using multi-stream accelerator for maximum download throughput..."
+if [ ! -f "$TEXT_ENCODER_DIR/$NOVA_CLIP_NAME" ]; then
+    echo "⬇️ Downloading Qwen Text Encoder ($NOVA_CLIP_NAME)..."
     if command -v aria2c >/dev/null 2>&1; then
-        aria2c -c -x 16 -s 16 -k 1M --dir="$CHECKPOINT_DIR" --out="$MODEL_NAME" "$CHECKPOINT_URL"
+        aria2c -c -x 8 -s 8 -k 1M --file-allocation=none --dir="$TEXT_ENCODER_DIR" --out="$NOVA_CLIP_NAME" "$NOVA_CLIP_URL"
     else
-        curl -L -# --retry 3 --connect-timeout 30 -o "$MODEL_PATH" "$CHECKPOINT_URL"
+        curl -L -# --retry 3 --connect-timeout 30 -o "$TEXT_ENCODER_DIR/$NOVA_CLIP_NAME" "$NOVA_CLIP_URL"
     fi
-    echo "✅ Checkpoint $MODEL_NAME downloaded successfully!"
+    echo "✅ Qwen Text Encoder downloaded successfully!"
 fi
 
-# 4. Launch headless ComfyUI in the background with speed optimizations
+if [ ! -f "$VAE_DIR/$NOVA_VAE_NAME" ]; then
+    echo "⬇️ Downloading Qwen VAE ($NOVA_VAE_NAME)..."
+    if command -v aria2c >/dev/null 2>&1; then
+        aria2c -c -x 8 -s 8 -k 1M --file-allocation=none --dir="$VAE_DIR" --out="$NOVA_VAE_NAME" "$NOVA_VAE_URL"
+    else
+        curl -L -# --retry 3 --connect-timeout 30 -o "$VAE_DIR/$NOVA_VAE_NAME" "$NOVA_VAE_URL"
+    fi
+    echo "✅ Qwen VAE downloaded successfully!"
+fi
+
+# ==============================================================================
+# 3. Check & Download NoobAI-XL v1.1 Checkpoint (Optional / Secondary Model)
+# ==============================================================================
+if [ ! -f "$CHECKPOINT_DIR/$NOOBAI_CKPT_NAME" ] && [ "${DOWNLOAD_NOOBAI:-true}" = "true" ]; then
+    echo "⬇️ Downloading NoobAI-XL v1.1 ($NOOBAI_CKPT_NAME)..."
+    if command -v aria2c >/dev/null 2>&1; then
+        aria2c -c -x 16 -s 16 -k 1M --file-allocation=none --dir="$CHECKPOINT_DIR" --out="$NOOBAI_CKPT_NAME" "$NOOBAI_CKPT_URL"
+    else
+        curl -L -# --retry 3 --connect-timeout 30 -o "$CHECKPOINT_DIR/$NOOBAI_CKPT_NAME" "$NOOBAI_CKPT_URL"
+    fi
+    echo "✅ NoobAI-XL v1.1 downloaded successfully!"
+fi
+
+# ==============================================================================
+# 4. Launch headless ComfyUI daemon in the background
+# ==============================================================================
 echo "🚀 Launching headless ComfyUI daemon on 127.0.0.1:8188 (--fast --highvram)..."
 cd /app/ComfyUI
 python3 main.py \
@@ -143,9 +151,9 @@ while ! curl -s -f http://127.0.0.1:8188/ > /dev/null 2>&1; do
     fi
 done
 
-echo "✅ ComfyUI is up and running healthy!"
+echo "✅ ComfyUI is up and running healthy with Dual-Model support!"
 
-# 6. Start the serverless handler event loop
+# 6. Start the serverless worker listener
 echo "🚀 Starting serverless worker listener..."
 cd /app
 exec python3 -u /app/handler.py

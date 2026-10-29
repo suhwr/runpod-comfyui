@@ -1,113 +1,86 @@
 #!/usr/bin/env bash
 # ==============================================================================
-# setup_volume.sh — One-time model population script for Network Volume
+# setup_volume.sh — Dual-Model Population Script for Network Volume
 #
-# HOW TO USE:
-#   1. Create a Network Volume (>=20GB) from dashboard
-#   2. Spin up a temporary GPU pod with the volume attached
-#      (any Ubuntu/Python image works, e.g. nvidia/cuda:12.4.1-runtime-ubuntu22.04)
-#   3. Open terminal in that pod and run:
-#         bash <(curl -fsSL https://raw.githubusercontent.com/suhwr/runpod-comfyui/main/setup_volume.sh)
-#      or upload this file and run:  bash setup_volume.sh
-#   4. Terminate the temporary pod (volume data persists)
-#   5. Attach the volume to your serverless endpoint
-#   6. The worker will auto-detect and symlink — no download needed!
+# Models downloaded:
+#   1. Nova Anime AM (2.9B) [Anima DiT + Qwen Text Encoder + Qwen VAE]
+#   2. NoobAI-XL v1.1 [SDXL Native]
 # ==============================================================================
 set -e
 
 VOLUME_ROOT="/runpod-volume"
 MODELS_DIR="$VOLUME_ROOT/models"
+DIFFUSION_DIR="$MODELS_DIR/diffusion_models"
+TEXT_ENCODER_DIR="$MODELS_DIR/text_encoders"
+VAE_DIR="$MODELS_DIR/vae"
 CHECKPOINTS_DIR="$MODELS_DIR/checkpoints"
-LORAS_DIR="$MODELS_DIR/loras"
 
 echo "================================================================"
-echo "  Network Volume Model Setup Script"
+echo "  Dual-Model Network Volume Setup Script"
 echo "  Target: $VOLUME_ROOT"
 echo "================================================================"
 
-# Detect volume
 if [ ! -d "$VOLUME_ROOT" ]; then
     echo "❌ Network Volume not found at $VOLUME_ROOT"
-    echo "   Make sure the volume is attached to this pod."
     exit 1
 fi
 
-FREE_GB=$(df -BG "$VOLUME_ROOT" | tail -1 | awk '{print $4}' | tr -d 'G')
-echo "✅ Volume found. Free space: ${FREE_GB}GB"
+mkdir -p "$DIFFUSION_DIR" "$TEXT_ENCODER_DIR" "$VAE_DIR" "$CHECKPOINTS_DIR"
 
-if [ "$FREE_GB" -lt 10 ]; then
-    echo "⚠️  Warning: Less than 10GB free. NoobAI-XL needs ~7.2GB."
-fi
-
-mkdir -p "$CHECKPOINTS_DIR" "$LORAS_DIR"
-
-# Install aria2 for fast multi-stream download
 if ! command -v aria2c >/dev/null 2>&1; then
     echo "📦 Installing aria2..."
     apt-get update -qq && apt-get install -y -qq aria2
 fi
 
-# ─── Download Nova Anime XL (Illustrious v10.0) Checkpoint (~6.9GB) ───────
-CHECKPOINT_NAME="novaAnimeXL_ilV100.safetensors"
-CHECKPOINT_PATH="$CHECKPOINTS_DIR/$CHECKPOINT_NAME"
-CHECKPOINT_URL="https://huggingface.co/frankjoshua/novaAnimeXL_ilV100/resolve/main/novaAnimeXL_ilV100.safetensors"
+# ─── 1. Nova Anime AM (2.9B) UNet (~5.5GB) ──────────────────────────────────
+NOVA_UNET_NAME="novaAnimeAM_v6029B.safetensors"
+NOVA_UNET_URL="https://huggingface.co/mogaru99/novaAnimeAM_v6029B/resolve/main/novaAnimeAM_v6029B.safetensors"
 
-if [ -f "$CHECKPOINT_PATH" ]; then
-    SIZE=$(du -sh "$CHECKPOINT_PATH" | cut -f1)
-    echo "✅ Checkpoint already exists ($SIZE) — skipping download."
+if [ -f "$DIFFUSION_DIR/$NOVA_UNET_NAME" ]; then
+    echo "✅ Nova UNet already exists — skipping download."
 else
-    echo ""
-    echo "⬇️  Downloading Nova Anime XL (~6.9GB)..."
-    echo "    Destination: $CHECKPOINT_PATH"
-    echo "    Using 16-stream accelerated download..."
-    aria2c \
-        -c \
-        -x 16 \
-        -s 16 \
-        -k 1M \
-        --file-allocation=none \
-        --console-log-level=notice \
-        --dir="$CHECKPOINTS_DIR" \
-        --out="$CHECKPOINT_NAME" \
-        "$CHECKPOINT_URL"
-    echo "✅ Checkpoint downloaded!"
+    echo "⬇️ Downloading Nova Anime AM UNet (~5.5GB)..."
+    aria2c -c -x 16 -s 16 -k 1M --file-allocation=none --dir="$DIFFUSION_DIR" --out="$NOVA_UNET_NAME" "$NOVA_UNET_URL"
+    echo "✅ Nova UNet downloaded!"
 fi
 
-# ─── Download Hyper-SD 8-Step CFG LoRA (~400MB) ────────────────────────────
-LORA_NAME="Hyper-SDXL-8steps-CFG-lora.safetensors"
-LORA_PATH="$LORAS_DIR/$LORA_NAME"
-LORA_URL="https://huggingface.co/ByteDance/Hyper-SD/resolve/main/Hyper-SDXL-8steps-CFG-lora.safetensors"
+# ─── 2. Qwen Text Encoder (~1.1GB) ──────────────────────────────────────────
+NOVA_CLIP_NAME="qwen_3_06b_base.safetensors"
+NOVA_CLIP_URL="https://huggingface.co/circlestone-labs/Anima/resolve/main/split_files/text_encoders/qwen_3_06b_base.safetensors"
 
-if [ -f "$LORA_PATH" ]; then
-    SIZE=$(du -sh "$LORA_PATH" | cut -f1)
-    echo "✅ LoRA already exists ($SIZE) — skipping download."
+if [ -f "$TEXT_ENCODER_DIR/$NOVA_CLIP_NAME" ]; then
+    echo "✅ Qwen Text Encoder already exists — skipping download."
 else
-    echo ""
-    echo "⬇️  Downloading Hyper-SD 8-Step LoRA (~400MB)..."
-    aria2c \
-        -c \
-        -x 8 \
-        -s 8 \
-        -k 1M \
-        --file-allocation=none \
-        --console-log-level=notice \
-        --dir="$LORAS_DIR" \
-        --out="$LORA_NAME" \
-        "$LORA_URL"
-    echo "✅ LoRA downloaded!"
+    echo "⬇️ Downloading Qwen Text Encoder (~1.1GB)..."
+    aria2c -c -x 8 -s 8 -k 1M --file-allocation=none --dir="$TEXT_ENCODER_DIR" --out="$NOVA_CLIP_NAME" "$NOVA_CLIP_URL"
+    echo "✅ Qwen Text Encoder downloaded!"
 fi
 
-# ─── Final summary ────────────────────────────────────────────────────────────
+# ─── 3. Qwen VAE (~240MB) ───────────────────────────────────────────────────
+NOVA_VAE_NAME="qwen_image_vae.safetensors"
+NOVA_VAE_URL="https://huggingface.co/circlestone-labs/Anima/resolve/main/split_files/vae/qwen_image_vae.safetensors"
+
+if [ -f "$VAE_DIR/$NOVA_VAE_NAME" ]; then
+    echo "✅ Qwen VAE already exists — skipping download."
+else
+    echo "⬇️ Downloading Qwen VAE (~240MB)..."
+    aria2c -c -x 8 -s 8 -k 1M --file-allocation=none --dir="$VAE_DIR" --out="$NOVA_VAE_NAME" "$NOVA_VAE_URL"
+    echo "✅ Qwen VAE downloaded!"
+fi
+
+# ─── 4. NoobAI-XL v1.1 Checkpoint (~7.1GB) ─────────────────────────────────
+NOOBAI_CKPT_NAME="NoobAI-XL-v1.1.safetensors"
+NOOBAI_CKPT_URL="https://huggingface.co/Laxhar/noobai-XL-1.1/resolve/main/NoobAI-XL-v1.1.safetensors"
+
+if [ -f "$CHECKPOINTS_DIR/$NOOBAI_CKPT_NAME" ]; then
+    echo "✅ NoobAI-XL checkpoint already exists — skipping download."
+else
+    echo "⬇️ Downloading NoobAI-XL v1.1 Checkpoint (~7.1GB)..."
+    aria2c -c -x 16 -s 16 -k 1M --file-allocation=none --dir="$CHECKPOINTS_DIR" --out="$NOOBAI_CKPT_NAME" "$NOOBAI_CKPT_URL"
+    echo "✅ NoobAI-XL downloaded!"
+fi
+
 echo ""
 echo "================================================================"
-echo "  ✅ All models ready in Network Volume!"
-echo ""
-echo "  Volume structure:"
-find "$MODELS_DIR" -name "*.safetensors" -printf "    %s bytes  %f\n" 2>/dev/null \
-    || ls -lh "$CHECKPOINTS_DIR" "$LORAS_DIR" 2>/dev/null || true
-echo ""
-echo "  Next steps:"
-echo "  1. Terminate this temporary pod"
-echo "  2. Attach this volume to your serverless endpoint"
-echo "  3. Cold start will now be ~25 seconds (no download needed!)"
+echo "  ✅ All Dual-Model components populated in Network Volume!"
 echo "================================================================"
