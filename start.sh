@@ -54,16 +54,30 @@ fi
 # ==============================================================================
 
 # 1. Volume Auto-Detection (Zero Cold-Start if using persistent Network Volume)
+#    Checks both flat and nested /models/checkpoints + /models/loras layout
 for VOL in "/runpod-volume" "/workspace" "/volume"; do
-    if [ -f "$VOL/models/$MODEL_NAME" ]; then
-        echo "⚡ Found checkpoint in persistent volume ($VOL/models/$MODEL_NAME)! Symlinking..."
-        ln -sf "$VOL/models/$MODEL_NAME" "$MODEL_PATH"
-        break
-    elif [ -f "$VOL/$MODEL_NAME" ]; then
-        echo "⚡ Found checkpoint in persistent volume ($VOL/$MODEL_NAME)! Symlinking..."
-        ln -sf "$VOL/$MODEL_NAME" "$MODEL_PATH"
-        break
-    fi
+    [ -d "$VOL" ] || continue
+
+    # Checkpoint auto-symlink
+    for CKPT_PATH in "$VOL/models/checkpoints/$MODEL_NAME" "$VOL/models/$MODEL_NAME" "$VOL/$MODEL_NAME"; do
+        if [ -f "$CKPT_PATH" ]; then
+            echo "⚡ Network Volume checkpoint found! Symlinking $CKPT_PATH -> $MODEL_PATH"
+            ln -sf "$CKPT_PATH" "$MODEL_PATH"
+            break
+        fi
+    done
+
+    # LoRA auto-symlink
+    for LORA_VOL_PATH in "$VOL/models/loras/$LORA_NAME" "$VOL/models/$LORA_NAME" "$VOL/$LORA_NAME"; do
+        if [ -f "$LORA_VOL_PATH" ]; then
+            echo "⚡ Network Volume LoRA found! Symlinking $LORA_VOL_PATH -> $LORA_PATH"
+            ln -sf "$LORA_VOL_PATH" "$LORA_PATH"
+            break
+        fi
+    done
+
+    # If checkpoint is now resolved, no need to check other volumes
+    [ -f "$MODEL_PATH" ] && break
 done
 
 # 2. Check & Download LoRA if not present (~400MB)
