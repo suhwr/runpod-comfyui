@@ -41,17 +41,22 @@ NOVA_CLIP_NAME = os.environ.get("NOVA_CLIP_NAME", "qwen_3_06b_base.safetensors")
 NOVA_VAE_NAME = os.environ.get("NOVA_VAE_NAME", "qwen_image_vae.safetensors")
 NOOBAI_CKPT_NAME = os.environ.get("NOOBAI_CKPT_NAME", "NoobAI-XL-v1.1.safetensors")
 
-# Default quality tags
-NOVA_QUALITY_BOOSTER = "masterpiece, best quality, score_7, safe, anime"
+# Default quality tags (Enhanced for 2.5D depth, rich background, and cinematic lighting)
+NOVA_QUALITY_BOOSTER = (
+    "masterpiece, best quality, highly detailed, expressive eyes, aesthetic, "
+    "cinematic lighting, detailed background, atmospheric, depth of field"
+)
 NOVA_NEGATIVE_DEFAULT = (
-    "worst quality, low quality, score_1, score_2, score_3, blurry, jpeg artifacts, sepia, signature, watermark"
+    "worst quality, low quality, score_1, score_2, score_3, blurry, jpeg artifacts, sepia, "
+    "signature, watermark, simple background, white background, flat color, flat shading, "
+    "bad anatomy, bad hands, sketch, amateur"
 )
 
-NOOBAI_QUALITY_BOOSTER = "masterpiece, best quality, newest, absurdres, highres, safe"
+NOOBAI_QUALITY_BOOSTER = "masterpiece, best quality, newest, absurdres, highres, safe, very aesthetic, dynamic angle, detailed background"
 NOOBAI_NEGATIVE_DEFAULT = (
     "worst quality, old, early, low quality, lowres, sketch, rough sketch, crayon, "
-    "child drawing, lineart, monochrome, signature, watermark, username, "
-    "bad anatomy, bad hands, missing fingers, extra digits, fewer digits, blurry"
+    "child drawing, amateur, lineart, monochrome, signature, watermark, username, "
+    "bad anatomy, bad hands, mutated hands, missing fingers, extra digits, fewer digits, blurry, simple background"
 )
 
 # ============================================================================ #
@@ -194,11 +199,11 @@ def build_workflow_from_inputs(inputs: Dict[str, Any]) -> Tuple[Dict[str, Any], 
 
         width = int(inputs.get("width", 832))
         height = int(inputs.get("height", 1216))
-        steps = int(inputs.get("steps", 20))
+        steps = int(inputs.get("steps", 24))
         steps = min(35, max(12, steps))
-        cfg = float(inputs.get("cfg", 4.5))
+        cfg = float(inputs.get("cfg", 5.5))
 
-        sampler = inputs.get("sampler", "euler")
+        sampler = inputs.get("sampler", "euler_ancestral")
         scheduler = inputs.get("scheduler", "normal")
 
         workflow["1"]["inputs"]["ckpt_name"] = inputs.get("checkpoint", NOOBAI_CKPT_NAME)
@@ -230,9 +235,9 @@ def build_workflow_from_inputs(inputs: Dict[str, Any]) -> Tuple[Dict[str, Any], 
 
         width = int(inputs.get("width", 768))
         height = int(inputs.get("height", 960))
-        steps = int(inputs.get("steps", 15))
+        steps = int(inputs.get("steps", 13))
         steps = min(30, max(10, steps))
-        cfg = float(inputs.get("cfg", 2.0))
+        cfg = float(inputs.get("cfg", 2.6))
 
         sampler = inputs.get("sampler", "er_sde")
         scheduler = inputs.get("scheduler", "simple")

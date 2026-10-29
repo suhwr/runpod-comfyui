@@ -31,7 +31,7 @@
   },
   "4": {
     "inputs": {
-      "text": "1girl, silver hair, cat ears, school uniform, masterpiece, best quality, score_7, safe, anime",
+      "text": "1girl, silver hair, cat ears, school uniform, masterpiece, best quality, highly detailed, expressive eyes, aesthetic, cinematic lighting, detailed background, atmospheric, depth of field",
       "clip": [
         "2",
         0
@@ -44,7 +44,7 @@
   },
   "5": {
     "inputs": {
-      "text": "worst quality, low quality, score_1, score_2, score_3, blurry, jpeg artifacts, sepia, signature, watermark",
+      "text": "worst quality, low quality, score_1, score_2, score_3, blurry, jpeg artifacts, sepia, signature, watermark, simple background, white background, flat color, flat shading, bad anatomy, bad hands, sketch, amateur",
       "clip": [
         "2",
         0
@@ -69,8 +69,8 @@
   "7": {
     "inputs": {
       "seed": 0,
-      "steps": 15,
-      "cfg": 2.0,
+      "steps": 13,
+      "cfg": 2.6,
       "sampler_name": "er_sde",
       "scheduler": "simple",
       "denoise": 1.0,

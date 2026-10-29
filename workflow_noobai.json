@@ -10,7 +10,7 @@
   },
   "2": {
     "inputs": {
-      "text": "1girl, silver hair, cat ears, school uniform, masterpiece, best quality, newest, absurdres, highres, safe",
+      "text": "1girl, silver hair, cat ears, school uniform, masterpiece, best quality, newest, absurdres, highres, safe, very aesthetic, dynamic angle, detailed background",
       "clip": [
         "1",
         1
@@ -23,7 +23,7 @@
   },
   "3": {
     "inputs": {
-      "text": "worst quality, old, early, low quality, lowres, sketch, rough sketch, crayon, child drawing, lineart, monochrome, signature, watermark, username, bad anatomy, bad hands, missing fingers, extra digits, fewer digits, blurry",
+      "text": "worst quality, old, early, low quality, lowres, sketch, rough sketch, crayon, child drawing, amateur, lineart, monochrome, signature, watermark, username, bad anatomy, bad hands, mutated hands, missing fingers, extra digits, fewer digits, blurry, simple background",
       "clip": [
         "1",
         1
@@ -48,9 +48,9 @@
   "5": {
     "inputs": {
       "seed": 0,
-      "steps": 20,
-      "cfg": 4.5,
-      "sampler_name": "euler",
+      "steps": 24,
+      "cfg": 5.5,
+      "sampler_name": "euler_ancestral",
       "scheduler": "normal",
       "denoise": 1.0,
       "model": [

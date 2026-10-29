@@ -96,6 +96,8 @@ COPY start.sh /app/start.sh
 COPY setup_volume.sh /app/setup_volume.sh
 COPY README.md /app/README.md
 
-RUN chmod +x /app/start.sh /app/setup_volume.sh /app/warmup.py
+RUN chmod +x /app/start.sh /app/setup_volume.sh /app/warmup.py \
+    && python3 -m compileall -q /app/ComfyUI \
+    && python3 -m compileall -q /app
 
 CMD ["/app/start.sh"]

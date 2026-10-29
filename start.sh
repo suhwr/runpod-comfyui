@@ -133,14 +133,16 @@ fi
 # ==============================================================================
 # 4. Launch headless ComfyUI daemon in the background
 # ==============================================================================
-echo "🚀 Launching headless ComfyUI daemon on 127.0.0.1:8188 (--fast --highvram)..."
+echo "🚀 Launching headless ComfyUI daemon on 127.0.0.1:8188 (--fast --highvram --disable-metadata)..."
 cd /app/ComfyUI
 python3 main.py \
     --listen 127.0.0.1 \
     --port 8188 \
     --fast \
     --highvram \
-    --disable-auto-launch &
+    --disable-auto-launch \
+    --disable-metadata \
+    --dont-up-scale-weights &
 
 COMFY_PID=$!
 echo "ComfyUI daemon started with PID: $COMFY_PID"
@@ -155,8 +157,8 @@ while ! curl -s -f http://127.0.0.1:8188/ > /dev/null 2>&1; do
         wait $COMFY_PID
         exit 1
     fi
-    sleep 2
-    WAITED=$((WAITED + 2))
+    sleep 1
+    WAITED=$((WAITED + 1))
     if [ $WAITED -ge $MAX_WAIT ]; then
         echo "❌ ComfyUI timed out after $MAX_WAIT seconds."
         exit 1
@@ -165,9 +167,10 @@ done
 
 echo "✅ ComfyUI is up and running healthy with Dual-Model support!"
 
-# 6. Pre-warm default model (Nova Anime AM) into GPU VRAM
-#    Loads weights into VRAM so the very first user request has 0s load latency!
-if [ "${PREWARM_MODEL:-true}" = "true" ]; then
+# 6. Pre-warm default model into GPU VRAM
+#    In Scale-to-Zero serverless mode, disabled by default to save 15s cold-start latency!
+#    The real user job loads the model directly on first inference.
+if [ "${PREWARM_MODEL:-false}" = "true" ]; then
     echo "🔥 Running VRAM Pre-warming..."
     python3 /app/warmup.py || true
 fi
