@@ -1,11 +1,12 @@
 #!/usr/bin/env python3
 """
-warmup.py — VRAM Pre-warming script for ComfyUI Serverless Worker
+warmup.py — Dual-Model VRAM Pre-warming script for ComfyUI Serverless Worker
 
 Executes a 1-step minimal latent inference during container boot so that:
-  1. The diffusion model (Nova Anime AM), Qwen text encoder, and VAE
-     are fully loaded into GPU VRAM before the worker begins accepting user jobs.
-  2. The first user request experiences ZERO seconds model-loading latency!
+  1. NoobAI-XL v1.1 and Nova Anime AM v6.0 are both loaded into memory / GPU VRAM
+     before the worker begins accepting user jobs.
+  2. The first user request experiences ZERO seconds model-loading latency,
+     regardless of whether they request Nova or NoobAI on a brand-new worker!
 """
 
 import json
@@ -23,31 +24,32 @@ logger = logging.getLogger("warmup")
 COMFY_HOST = os.environ.get("COMFY_HOST", "127.0.0.1:8188")
 COMFY_DIR = os.environ.get("COMFY_DIR", "/app/ComfyUI")
 WORKFLOW_NOVA_PATH = "/app/workflow_nova.json"
+WORKFLOW_NOOBAI_PATH = "/app/workflow_noobai.json"
 
 
-def prewarm_comfyui() -> bool:
-    if not os.path.exists(WORKFLOW_NOVA_PATH):
-        logger.warning(f"Workflow template {WORKFLOW_NOVA_PATH} not found. Skipping warmup.")
+def run_micro_warmup(workflow_path: str, latent_node: str, sampler_node: str, clean_prefix: str, name: str) -> bool:
+    if not os.path.exists(workflow_path):
+        logger.warning(f"Workflow template {workflow_path} not found. Skipping {name} warmup.")
         return False
 
     try:
-        with open(WORKFLOW_NOVA_PATH, "r", encoding="utf-8") as f:
+        with open(workflow_path, "r", encoding="utf-8") as f:
             workflow = json.load(f)
 
         # Make the warmup ultra-fast: 1 step, tiny 256x256 resolution
-        # This loads all model layers into VRAM without wasting computation
-        if "6" in workflow and "inputs" in workflow["6"]:
-            workflow["6"]["inputs"]["width"] = 256
-            workflow["6"]["inputs"]["height"] = 256
-        if "7" in workflow and "inputs" in workflow["7"]:
-            workflow["7"]["inputs"]["steps"] = 1
-            workflow["7"]["inputs"]["cfg"] = 1.0
+        # This forces ComfyUI to load and initialize all weights without wasting computation
+        if latent_node in workflow and "inputs" in workflow[latent_node]:
+            workflow[latent_node]["inputs"]["width"] = 256
+            workflow[latent_node]["inputs"]["height"] = 256
+        if sampler_node in workflow and "inputs" in workflow[sampler_node]:
+            workflow[sampler_node]["inputs"]["steps"] = 1
+            workflow[sampler_node]["inputs"]["cfg"] = 1.0
 
-        client_id = "warmup_client"
+        client_id = f"warmup_{name.lower().replace(' ', '_')}"
         ws_url = f"ws://{COMFY_HOST}/ws?clientId={client_id}"
 
-        logger.info("🔥 Pre-warming models into GPU VRAM (1-step warmup)...")
-        ws = websocket.create_connection(ws_url, timeout=45)
+        logger.info(f"🔥 Pre-warming [{name}] into memory/VRAM (1-step micro-inference)...")
+        ws = websocket.create_connection(ws_url, timeout=60)
 
         res = requests.post(
             f"http://{COMFY_HOST}/prompt",
@@ -55,7 +57,7 @@ def prewarm_comfyui() -> bool:
             timeout=20,
         )
         if res.status_code != 200:
-            logger.warning(f"Warmup prompt submission failed ({res.status_code}): {res.text}")
+            logger.warning(f"Warmup prompt submission failed for {name} ({res.status_code}): {res.text}")
             ws.close()
             return False
 
@@ -73,25 +75,52 @@ def prewarm_comfyui() -> bool:
                 if data.get("node") is None and data.get("prompt_id") == prompt_id:
                     break
             elif msg_type == "execution_error":
-                logger.warning(f"Warmup execution encountered an issue: {msg}")
+                logger.warning(f"Warmup execution encountered an issue with {name}: {msg}")
                 break
 
         ws.close()
 
-        # Clean up any warmup output file
+        # Clean up any warmup output files generated
         output_dir = pathlib.Path(COMFY_DIR) / "output"
-        for p in output_dir.glob("ComfyUI_NovaAnime*"):
+        for p in output_dir.glob(f"{clean_prefix}*"):
             try:
                 p.unlink()
             except Exception:
                 pass
 
-        logger.info("✨ GPU VRAM Pre-warming complete! Model is hot and ready for sub-second start!")
+        logger.info(f"✨ [{name}] pre-warming complete!")
         return True
 
     except Exception as exc:
-        logger.warning(f"Warmup error (non-fatal, worker will still function): {exc}")
+        logger.warning(f"Warmup error for {name} (non-fatal, worker will still function): {exc}")
         return False
+
+
+def prewarm_comfyui() -> bool:
+    # 1. Prewarm NoobAI-XL first (if checkpoint exists)
+    noobai_ckpt = os.path.join(COMFY_DIR, "models", "checkpoints", "NoobAI-XL-v1.1.safetensors")
+    if os.path.exists(noobai_ckpt):
+        run_micro_warmup(
+            workflow_path=WORKFLOW_NOOBAI_PATH,
+            latent_node="4",
+            sampler_node="5",
+            clean_prefix="ComfyUI_NoobAI",
+            name="NoobAI-XL v1.1",
+        )
+    else:
+        logger.info("NoobAI-XL checkpoint not present yet; skipping NoobAI warmup.")
+
+    # 2. Prewarm Nova Anime AM (Default model - sits ready in active VRAM)
+    run_micro_warmup(
+        workflow_path=WORKFLOW_NOVA_PATH,
+        latent_node="6",
+        sampler_node="7",
+        clean_prefix="ComfyUI_NovaAnime",
+        name="Nova Anime AM v6.0",
+    )
+
+    logger.info("✨ Dual-Model GPU VRAM Pre-warming complete! Models are hot and ready for sub-second start!")
+    return True
 
 
 if __name__ == "__main__":
