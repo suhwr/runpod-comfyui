@@ -141,8 +141,7 @@ python3 main.py \
     --fast \
     --highvram \
     --disable-auto-launch \
-    --disable-metadata \
-    --dont-up-scale-weights &
+    --disable-metadata &
 
 COMFY_PID=$!
 echo "ComfyUI daemon started with PID: $COMFY_PID"
