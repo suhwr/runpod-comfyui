@@ -11,6 +11,48 @@ MODEL_PATH="$CHECKPOINT_DIR/$MODEL_NAME"
 LORA_NAME="${LORA_NAME:-Hyper-SDXL-8steps-CFG-lora.safetensors}"
 LORA_PATH="$LORA_DIR/$LORA_NAME"
 
+# ==============================================================================
+# PATCH: Safety net for comfy_kitchen list[int] incompatibility with PyTorch < 2.7
+# comfy_kitchen uses PEP-585 built-in generics (list[int]) which are only
+# supported by torch.library.infer_schema in PyTorch >= 2.7.
+# Dockerfile now uses PyTorch 2.7.0 so this normally won't be needed,
+# but we keep it as a safety net in case the running image is older.
+# ==============================================================================
+CKITCHEN_SITE="$(python3 -c 'import site; print(site.getsitepackages()[0])')/comfy_kitchen"
+
+# Check PyTorch version — only patch if < 2.7
+TORCH_VER=$(python3 -c "import torch; v=torch.__version__; parts=v.split('.')[:2]; print(int(parts[0])*100+int(parts[1]))" 2>/dev/null || echo "0")
+if [ "$TORCH_VER" -lt 207 ] && [ -d "$CKITCHEN_SITE" ]; then
+    echo "⚠️  PyTorch < 2.7 detected — patching comfy_kitchen for list[int] compatibility..."
+
+    find "$CKITCHEN_SITE" -name "*.py" | while read -r f; do
+        if grep -qE ": list\[|: dict\[|: tuple\[|: set\[" "$f" 2>/dev/null; then
+            # Inject typing import at top if not present
+            if ! grep -q "^import typing" "$f"; then
+                sed -i '1s/^/import typing\n/' "$f"
+            fi
+            # Replace bare PEP-585 builtin generics with typing equivalents
+            sed -i \
+                -e 's/: list\[int\]/: typing.List[int]/g' \
+                -e 's/: list\[float\]/: typing.List[float]/g' \
+                -e 's/: list\[bool\]/: typing.List[bool]/g' \
+                -e 's/: list\[str\]/: typing.List[str]/g' \
+                -e 's/: list\[torch\.Tensor\]/: typing.List[torch.Tensor]/g' \
+                -e 's/: list\[typing/: typing.List[typing/g' \
+                -e 's/: dict\[/: typing.Dict[/g' \
+                -e 's/: tuple\[/: typing.Tuple[/g' \
+                -e 's/: set\[/: typing.Set[/g' \
+                "$f"
+        fi
+    done
+
+    echo "✅ comfy_kitchen patch applied!"
+elif [ "$TORCH_VER" -ge 207 ]; then
+    echo "✅ PyTorch >= 2.7 detected — comfy_kitchen patch not needed."
+fi
+
+# ==============================================================================
+
 # 1. Volume Auto-Detection (Zero Cold-Start if using persistent Network Volume)
 for VOL in "/runpod-volume" "/workspace" "/volume"; do
     if [ -f "$VOL/models/$MODEL_NAME" ]; then

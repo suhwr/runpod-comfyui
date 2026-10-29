@@ -40,12 +40,13 @@ RUN update-alternatives --install /usr/bin/python3 python3 /usr/bin/python3.11 1
 
 WORKDIR /app
 
-# 2. Install PyTorch 2.6.0 with CUDA 12.4
-# PyTorch 2.6.0 is required by modern ComfyUI / comfy-kitchen for torch.library custom ops list[int]
+# 2. Install PyTorch 2.7.0 with CUDA 12.4
+# comfy-kitchen (required by ComfyUI) officially requires PyTorch >= 2.7.0
+# for torch.library.infer_schema support of built-in generic types (list[int], etc.)
 RUN python3 -m pip install --no-cache-dir \
     --index-url https://download.pytorch.org/whl/cu124 \
     --extra-index-url https://pypi.org/simple \
-    torch==2.6.0 torchvision==0.21.0 torchaudio==2.6.0
+    torch==2.7.0 torchvision==0.22.0 torchaudio==2.7.0
 
 # 3. Clone ComfyUI repository & install dependencies
 RUN git clone --depth 1 https://github.com/comfyanonymous/ComfyUI.git /app/ComfyUI \
