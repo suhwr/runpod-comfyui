@@ -1,8 +1,10 @@
 import base64
 import copy
+import hashlib
 import io
 import json
 import logging
+import mimetypes
 import os
 import pathlib
 import random
@@ -12,6 +14,7 @@ import sys
 import threading
 import time
 import urllib.parse
+import uuid
 from typing import Any, Dict, List, Optional, Tuple
 
 import requests
@@ -61,7 +64,124 @@ NOOBAI_NEGATIVE_DEFAULT = (
 
 # ============================================================================ #
 # Storage Uploaders with Automatic Fallback Chain                              #
+# Backblaze B2 (Primary) -> Uguu -> Catbox -> Uploadcare -> Base64             #
 # ============================================================================ #
+
+def _upload_b2(file_path: pathlib.Path, folder: str = "tmp/comfyui") -> str:
+    """
+    Upload to Backblaze B2 (S3-compatible or native REST).
+    Uses 'tmp/' prefix for automatic lifecycle expiration cleanup.
+    """
+    key_id = os.environ.get("B2_KEY_ID") or os.environ.get("AWS_ACCESS_KEY_ID")
+    app_key = os.environ.get("B2_APPLICATION_KEY") or os.environ.get("AWS_SECRET_ACCESS_KEY")
+    bucket = os.environ.get("B2_BUCKET_NAME")
+    endpoint = os.environ.get("B2_ENDPOINT_URL") or os.environ.get("AWS_ENDPOINT_URL")
+
+    if not (key_id and app_key and bucket):
+        raise ValueError("Backblaze B2 credentials (B2_KEY_ID, B2_APPLICATION_KEY, B2_BUCKET_NAME) not set")
+
+    clean_folder = folder.strip("/")
+    target_key = f"{clean_folder}/{int(time.time())}_{uuid.uuid4().hex[:8]}_{file_path.name}"
+    content_type, _ = mimetypes.guess_type(str(file_path))
+    if not content_type:
+        content_type = "image/png"
+
+    # Attempt 1: boto3 S3 API if endpoint is provided
+    if endpoint:
+        try:
+            import boto3
+            from botocore.config import Config
+
+            s3 = boto3.client(
+                "s3",
+                endpoint_url=endpoint,
+                aws_access_key_id=key_id,
+                aws_secret_access_key=app_key,
+                config=Config(signature_version="s3v4", s3={"addressing_style": "virtual"}),
+            )
+            with open(file_path, "rb") as f:
+                s3.upload_fileobj(f, bucket, target_key, ExtraArgs={"ContentType": content_type})
+
+            public_prefix = os.environ.get("B2_PUBLIC_URL_PREFIX", "").rstrip("/")
+            if public_prefix:
+                return f"{public_prefix}/{target_key}"
+
+            try:
+                return s3.generate_presigned_url("get_object", Params={"Bucket": bucket, "Key": target_key}, ExpiresIn=86400)
+            except Exception:
+                parsed = urllib.parse.urlsplit(endpoint)
+                return f"{parsed.scheme}://{bucket}.{parsed.netloc}/{target_key}"
+        except ImportError:
+            pass
+
+    # Attempt 2: B2 Native REST API (No external packages required)
+    auth_resp = requests.get(
+        "https://api.backblazeb2.com/b2api/v3/b2_authorize_account",
+        auth=(key_id, app_key),
+        timeout=30,
+    )
+    auth_resp.raise_for_status()
+    auth_data = auth_resp.json()
+    api_url = auth_data["apiUrl"]
+    auth_token = auth_data["authorizationToken"]
+    download_url = auth_data["downloadUrl"]
+
+    bucket_id = os.environ.get("B2_BUCKET_ID")
+    if not bucket_id:
+        bucket_id = auth_data.get("allowed", {}).get("bucketId")
+    if not bucket_id:
+        lb_resp = requests.post(
+            f"{api_url}/b2api/v3/b2_list_buckets",
+            headers={"Authorization": auth_token},
+            json={"accountId": auth_data["accountId"], "bucketName": bucket},
+            timeout=30,
+        )
+        lb_resp.raise_for_status()
+        buckets = lb_resp.json().get("buckets", [])
+        if buckets:
+            bucket_id = buckets[0]["bucketId"]
+        else:
+            raise ValueError(f"B2 bucket '{bucket}' not found")
+
+    up_resp = requests.post(
+        f"{api_url}/b2api/v3/b2_get_upload_url",
+        headers={"Authorization": auth_token},
+        json={"bucketId": bucket_id},
+        timeout=30,
+    )
+    up_resp.raise_for_status()
+    up_data = up_resp.json()
+    upload_url = up_data["uploadUrl"]
+    upload_token = up_data["authorizationToken"]
+
+    sha1 = hashlib.sha1()
+    with open(file_path, "rb") as f:
+        while chunk := f.read(65536):
+            sha1.update(chunk)
+    digest = sha1.hexdigest()
+
+    file_size = file_path.stat().st_size
+    with open(file_path, "rb") as f:
+        res = requests.post(
+            upload_url,
+            headers={
+                "Authorization": upload_token,
+                "X-Bz-File-Name": urllib.parse.quote(target_key),
+                "Content-Type": content_type,
+                "Content-Length": str(file_size),
+                "X-Bz-Content-Sha1": digest,
+            },
+            data=f,
+            timeout=120,
+        )
+        res.raise_for_status()
+
+    public_prefix = os.environ.get("B2_PUBLIC_URL_PREFIX", "").rstrip("/")
+    if public_prefix:
+        return f"{public_prefix}/{target_key}"
+
+    return f"{download_url}/file/{bucket}/{target_key}"
+
 
 def _upload_uguu(file_path: pathlib.Path) -> str:
     """Upload to Uguu.se (up to 100MB)."""
@@ -121,8 +241,17 @@ def _upload_ucarecdn(file_path: pathlib.Path, pub_key: str = "demopublickey") ->
 
 
 def upload_with_fallback(file_path: pathlib.Path, catbox_hash: Optional[str] = None) -> Tuple[str, str]:
-    """Fallback chain: uguu -> catbox -> ucarecdn."""
+    """Fallback chain: Backblaze B2 (if configured) -> uguu -> catbox -> ucarecdn."""
     errors: List[str] = []
+
+    # 1. Backblaze B2 Object Storage (tmp/ auto-expire lifecycle)
+    if os.environ.get("B2_APPLICATION_KEY") or os.environ.get("AWS_SECRET_ACCESS_KEY"):
+        try:
+            url = _upload_b2(file_path, folder="tmp/comfyui")
+            return url, "backblaze_b2"
+        except Exception as exc:
+            logger.warning(f"Backblaze B2 upload failed ({exc}), trying fallback uploaders...")
+            errors.append(f"b2: {exc}")
 
     try:
         url = _upload_uguu(file_path)
@@ -201,7 +330,7 @@ def build_workflow_from_inputs(inputs: Dict[str, Any]) -> Tuple[Dict[str, Any], 
         height = int(inputs.get("height", 1216))
         steps = int(inputs.get("steps", 24))
         steps = min(35, max(12, steps))
-        cfg = float(inputs.get("cfg", 5.5))
+        cfg = float(inputs.get("cfg", 4.2))
 
         sampler = inputs.get("sampler", "euler_ancestral")
         scheduler = inputs.get("scheduler", "normal")
@@ -235,9 +364,9 @@ def build_workflow_from_inputs(inputs: Dict[str, Any]) -> Tuple[Dict[str, Any], 
 
         width = int(inputs.get("width", 768))
         height = int(inputs.get("height", 960))
-        steps = int(inputs.get("steps", 13))
-        steps = min(30, max(10, steps))
-        cfg = float(inputs.get("cfg", 2.6))
+        steps = int(inputs.get("steps", 11))
+        steps = min(30, max(9, steps))
+        cfg = float(inputs.get("cfg", 2.4))
 
         sampler = inputs.get("sampler", "er_sde")
         scheduler = inputs.get("scheduler", "simple")

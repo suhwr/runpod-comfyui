@@ -69,8 +69,8 @@
   "7": {
     "inputs": {
       "seed": 0,
-      "steps": 13,
-      "cfg": 2.6,
+      "steps": 11,
+      "cfg": 2.4,
       "sampler_name": "er_sde",
       "scheduler": "simple",
       "denoise": 1.0,

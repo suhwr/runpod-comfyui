@@ -8,12 +8,25 @@
       "title": "Load Checkpoint (NoobAI-XL v1.1)"
     }
   },
+  "8": {
+    "inputs": {
+      "stop_at_clip_layer": -2,
+      "clip": [
+        "1",
+        1
+      ]
+    },
+    "class_type": "CLIPSetLastLayer",
+    "_meta": {
+      "title": "CLIP Set Last Layer (Clip Skip 2 - Prevents Color Bleeding)"
+    }
+  },
   "2": {
     "inputs": {
       "text": "1girl, silver hair, cat ears, school uniform, masterpiece, best quality, newest, absurdres, highres, safe, very aesthetic, dynamic angle, detailed background",
       "clip": [
-        "1",
-        1
+        "8",
+        0
       ]
     },
     "class_type": "CLIPTextEncode",
@@ -25,8 +38,8 @@
     "inputs": {
       "text": "worst quality, old, early, low quality, lowres, sketch, rough sketch, crayon, child drawing, amateur, lineart, monochrome, signature, watermark, username, bad anatomy, bad hands, mutated hands, missing fingers, extra digits, fewer digits, blurry, simple background",
       "clip": [
-        "1",
-        1
+        "8",
+        0
       ]
     },
     "class_type": "CLIPTextEncode",
@@ -49,7 +62,7 @@
     "inputs": {
       "seed": 0,
       "steps": 24,
-      "cfg": 5.5,
+      "cfg": 4.2,
       "sampler_name": "euler_ancestral",
       "scheduler": "normal",
       "denoise": 1.0,
