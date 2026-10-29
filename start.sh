@@ -130,10 +130,17 @@ elif [ "${DOWNLOAD_NOOBAI:-true}" = "true" ]; then
     ) &
 fi
 
+export PYTHONUNBUFFERED=1
+export PYTHONDONTWRITEBYTECODE=0
+export CUDA_MODULE_LOADING=LAZY
+if [ -f /usr/lib/x86_64-linux-gnu/libjemalloc.so.2 ]; then
+    export LD_PRELOAD=/usr/lib/x86_64-linux-gnu/libjemalloc.so.2:$LD_PRELOAD
+fi
+
 # ==============================================================================
 # 4. Launch headless ComfyUI daemon in the background
 # ==============================================================================
-echo "🚀 Launching headless ComfyUI daemon on 127.0.0.1:8188 (--fast --highvram --disable-metadata)..."
+echo "🚀 Launching headless ComfyUI daemon on 127.0.0.1:8188 (--fast --highvram --disable-metadata --dont-print-server --preview-method none)..."
 cd /app/ComfyUI
 python3 main.py \
     --listen 127.0.0.1 \
@@ -141,14 +148,16 @@ python3 main.py \
     --fast \
     --highvram \
     --disable-auto-launch \
-    --disable-metadata &
+    --disable-metadata \
+    --dont-print-server \
+    --preview-method none &
 
 COMFY_PID=$!
 echo "ComfyUI daemon started with PID: $COMFY_PID"
 
-# 5. Wait until ComfyUI responds 200 OK
-echo "⏳ Waiting for ComfyUI to become ready..."
-MAX_WAIT=120
+# 5. Wait until ComfyUI responds 200 OK (Fast polling: 100ms interval)
+echo "⏳ Waiting for ComfyUI to become ready (fast polling 100ms)..."
+MAX_WAIT=600
 WAITED=0
 while ! curl -s -f http://127.0.0.1:8188/ > /dev/null 2>&1; do
     if ! kill -0 $COMFY_PID 2>/dev/null; then
@@ -156,10 +165,10 @@ while ! curl -s -f http://127.0.0.1:8188/ > /dev/null 2>&1; do
         wait $COMFY_PID
         exit 1
     fi
-    sleep 1
+    sleep 0.1
     WAITED=$((WAITED + 1))
     if [ $WAITED -ge $MAX_WAIT ]; then
-        echo "❌ ComfyUI timed out after $MAX_WAIT seconds."
+        echo "❌ ComfyUI timed out after 60 seconds."
         exit 1
     fi
 done

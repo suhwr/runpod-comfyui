@@ -6,6 +6,9 @@ FROM nvidia/cuda:12.4.1-runtime-ubuntu22.04
 
 ENV DEBIAN_FRONTEND=noninteractive \
     PYTHONUNBUFFERED=1 \
+    PYTHONDONTWRITEBYTECODE=0 \
+    CUDA_MODULE_LOADING=LAZY \
+    LD_PRELOAD=/usr/lib/x86_64-linux-gnu/libjemalloc.so.2 \
     PIP_PREFER_BINARY=1 \
     CC=/usr/bin/gcc \
     COMFY_DIR=/app/ComfyUI \
@@ -31,6 +34,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     ffmpeg \
     libgl1-mesa-glx \
     libglib2.0-0 \
+    libjemalloc2 \
     aria2 \
     curl \
     git \
@@ -98,6 +102,7 @@ COPY README.md /app/README.md
 
 RUN chmod +x /app/start.sh /app/setup_volume.sh /app/warmup.py \
     && python3 -m compileall -q /app/ComfyUI \
-    && python3 -m compileall -q /app
+    && python3 -m compileall -q /app \
+    && python3 -m compileall -q /usr/local/lib/python3.11/dist-packages || true
 
 CMD ["/app/start.sh"]

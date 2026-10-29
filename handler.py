@@ -25,6 +25,10 @@ import websocket
 # Configuration & Hardware Diagnostics                                         #
 # ============================================================================ #
 
+os.environ.setdefault("CUDA_MODULE_LOADING", "LAZY")
+os.environ.setdefault("PYTHONDONTWRITEBYTECODE", "0")
+os.environ.setdefault("PYTHONUNBUFFERED", "1")
+
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(message)s")
 logger = logging.getLogger("comfyui-worker")
 
@@ -278,10 +282,12 @@ def upload_with_fallback(file_path: pathlib.Path, catbox_hash: Optional[str] = N
 # ============================================================================ #
 # ComfyUI Process & Health Lifecycle                                           #
 # ============================================================================ #
+# Fast ComfyUI Readiness Checks (100ms polling interval)                        #
+# ============================================================================ #
 
 def check_comfy_health() -> bool:
     try:
-        r = requests.get(f"http://{COMFY_HOST}/", timeout=2)
+        r = requests.get(f"http://{COMFY_HOST}/", timeout=0.5)
         return r.status_code == 200
     except Exception:
         return False
@@ -292,7 +298,7 @@ def ensure_comfyui_ready(timeout_seconds: int = 30) -> bool:
     while time.time() - start_time < timeout_seconds:
         if check_comfy_health():
             return True
-        time.sleep(1)
+        time.sleep(0.1)
     return False
 
 
