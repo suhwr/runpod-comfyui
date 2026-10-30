@@ -6,10 +6,9 @@ FROM nvidia/cuda:12.4.1-runtime-ubuntu22.04
 
 ENV DEBIAN_FRONTEND=noninteractive \
     PYTHONUNBUFFERED=1 \
-    PYTHONDONTWRITEBYTECODE=0 \
-    CUDA_MODULE_LOADING=LAZY \
-    LD_PRELOAD=/usr/lib/x86_64-linux-gnu/libjemalloc.so.2 \
     PIP_PREFER_BINARY=1 \
+    PREWARM_MODEL=true \
+    LD_LIBRARY_PATH=/usr/local/cuda/lib64:${LD_LIBRARY_PATH} \
     CC=/usr/bin/gcc \
     COMFY_DIR=/app/ComfyUI \
     COMFY_HOST=127.0.0.1:8188 \
@@ -34,7 +33,6 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     ffmpeg \
     libgl1-mesa-glx \
     libglib2.0-0 \
-    libjemalloc2 \
     aria2 \
     curl \
     git \

@@ -131,11 +131,6 @@ elif [ "${DOWNLOAD_NOOBAI:-true}" = "true" ]; then
 fi
 
 export PYTHONUNBUFFERED=1
-export PYTHONDONTWRITEBYTECODE=0
-export CUDA_MODULE_LOADING=LAZY
-if [ -f /usr/lib/x86_64-linux-gnu/libjemalloc.so.2 ]; then
-    export LD_PRELOAD=/usr/lib/x86_64-linux-gnu/libjemalloc.so.2:$LD_PRELOAD
-fi
 
 # ==============================================================================
 # 4. Launch headless ComfyUI daemon in the background
@@ -176,9 +171,8 @@ done
 echo "✅ ComfyUI is up and running healthy with Dual-Model support!"
 
 # 6. Pre-warm default model into GPU VRAM
-#    In Scale-to-Zero serverless mode, disabled by default to save 15s cold-start latency!
-#    The real user job loads the model directly on first inference.
-if [ "${PREWARM_MODEL:-false}" = "true" ]; then
+#    Ensures models and CUDA kernels are hot in VRAM before user requests arrive (Sub-second start!)
+if [ "${PREWARM_MODEL:-true}" = "true" ]; then
     echo "🔥 Running VRAM Pre-warming..."
     python3 /app/warmup.py || true
 fi

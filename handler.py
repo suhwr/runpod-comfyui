@@ -19,15 +19,19 @@ from typing import Any, Dict, List, Optional, Tuple
 
 import requests
 import runpod
+import torch
 import websocket
 
 # ============================================================================ #
 # Configuration & Hardware Diagnostics                                         #
 # ============================================================================ #
 
-os.environ.setdefault("CUDA_MODULE_LOADING", "LAZY")
-os.environ.setdefault("PYTHONDONTWRITEBYTECODE", "0")
 os.environ.setdefault("PYTHONUNBUFFERED", "1")
+
+if torch.cuda.is_available():
+    torch.backends.cuda.matmul.allow_tf32 = True
+    torch.backends.cudnn.allow_tf32 = True
+    torch.backends.cudnn.benchmark = True
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(message)s")
 logger = logging.getLogger("comfyui-worker")
@@ -48,23 +52,23 @@ NOVA_CLIP_NAME = os.environ.get("NOVA_CLIP_NAME", "qwen_3_06b_base.safetensors")
 NOVA_VAE_NAME = os.environ.get("NOVA_VAE_NAME", "qwen_image_vae.safetensors")
 NOOBAI_CKPT_NAME = os.environ.get("NOOBAI_CKPT_NAME", "NoobAI-XL-v1.1.safetensors")
 
-# Default quality tags (Enhanced for 2.5D depth, rich background, and cinematic lighting)
+# Default quality tags (Cinematic lighting, delicate hair/eyes, exquisite facial features, atmospheric background)
 NOVA_QUALITY_BOOSTER = (
-    "masterpiece, best quality, 2.5D anime style, highly detailed, expressive eyes, "
-    "volumetric lighting, subsurface scattering, ambient occlusion, detailed scenery background, "
-    "cinematic composition, atmospheric depth"
+    "masterpiece, best quality, newest, absurdres, highres, highly detailed, "
+    "delicate facial features, beautiful detailed eyes, detailed hair strands, "
+    "cinematic lighting, soft volumetric illumination, vibrant colors, detailed scenery background, "
+    "atmospheric depth"
 )
 NOVA_NEGATIVE_DEFAULT = (
-    "worst quality, low quality, blurry, jpeg artifacts, sepia, signature, watermark, "
-    "flat 2D, flat color, flat shading, simple background, white background, blank background, "
-    "bad lighting, washed out, bad anatomy, bad hands, sketch, amateur, 3d plastic"
+    "worst quality, low quality, lowres, blurry, jpeg artifacts, watermark, signature, "
+    "bad anatomy, bad hands, missing fingers, extra digits, deformed, "
+    "flat colors, washed out, dull lighting, oversaturated, amateur"
 )
 
-NOOBAI_QUALITY_BOOSTER = "masterpiece, best quality, newest, absurdres, highres, safe, very aesthetic, dynamic angle, detailed background"
+NOOBAI_QUALITY_BOOSTER = "masterpiece, best quality, newest, absurdres, highres, safe, very aesthetic"
 NOOBAI_NEGATIVE_DEFAULT = (
-    "worst quality, old, early, low quality, lowres, sketch, rough sketch, crayon, "
-    "child drawing, amateur, lineart, monochrome, signature, watermark, username, "
-    "bad anatomy, bad hands, mutated hands, missing fingers, extra digits, fewer digits, blurry, simple background"
+    "worst quality, old, early, low quality, lowres, signature, username, logo, "
+    "bad hands, mutated hands, missing fingers, extra digits, fewer digits, blurry, bad anatomy"
 )
 
 # ============================================================================ #
@@ -336,12 +340,12 @@ def build_workflow_from_inputs(inputs: Dict[str, Any]) -> Tuple[Dict[str, Any], 
 
         width = int(inputs.get("width", 832))
         height = int(inputs.get("height", 1216))
-        steps = int(inputs.get("steps", 25))
-        steps = min(35, max(15, steps))
-        cfg = float(inputs.get("cfg", 5.0))
+        steps = int(inputs.get("steps", 28))
+        steps = min(35, max(18, steps))
+        cfg = float(inputs.get("cfg", 4.5))
 
-        sampler = inputs.get("sampler", "euler")
-        scheduler = inputs.get("scheduler", "karras")
+        sampler = inputs.get("sampler", "euler_ancestral")
+        scheduler = inputs.get("scheduler", "normal")
 
         workflow["1"]["inputs"]["ckpt_name"] = inputs.get("checkpoint", NOOBAI_CKPT_NAME)
         workflow["2"]["inputs"]["text"] = positive_text
@@ -372,12 +376,12 @@ def build_workflow_from_inputs(inputs: Dict[str, Any]) -> Tuple[Dict[str, Any], 
 
         width = int(inputs.get("width", 768))
         height = int(inputs.get("height", 1024))
-        steps = int(inputs.get("steps", 11))
-        steps = min(30, max(9, steps))
-        cfg = float(inputs.get("cfg", 2.4))
+        steps = int(inputs.get("steps", 22))
+        steps = min(35, max(15, steps))
+        cfg = float(inputs.get("cfg", 4.5))
 
-        sampler = inputs.get("sampler", "er_sde")
-        scheduler = inputs.get("scheduler", "simple")
+        sampler = inputs.get("sampler", "euler_ancestral")
+        scheduler = inputs.get("scheduler", "normal")
 
         workflow["1"]["inputs"]["unet_name"] = inputs.get("unet_name", NOVA_UNET_NAME)
         workflow["2"]["inputs"]["clip_name"] = inputs.get("clip_name", NOVA_CLIP_NAME)
