@@ -19,7 +19,7 @@ mkdir -p "$DIFFUSION_DIR" "$TEXT_ENCODER_DIR" "$VAE_DIR" "$CHECKPOINT_DIR"
 # ─── Pure DiT Anime Models Config ─────────────────────────────────────────────
 # Model 1: Nova Anime AM v6.0 (2.9B) [Default Anime 2D]
 NOVA_UNET_NAME="${NOVA_UNET_NAME:-novaAnimeAM_v6029B.safetensors}"
-NOVA_UNET_URL="${NOVA_UNET_URL:-https://huggingface.co/Kutches/Anim4/resolve/main/novaAnimeAM_v6029B.safetensors}"
+NOVA_UNET_URL="${NOVA_UNET_URL:-https://huggingface.co/mogaru99/novaAnimeAM_v6029B/resolve/main/novaAnimeAM_v6029B.safetensors}"
 
 # Model 2: Nova Orange AM (2.9B) [2.5D Semi-Realistic Anime]
 ORANGE_UNET_NAME="${ORANGE_UNET_NAME:-novaOrangeAM_v4029B.safetensors}"

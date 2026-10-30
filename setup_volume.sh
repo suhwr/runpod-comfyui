@@ -35,7 +35,7 @@ fi
 
 # ─── 1. Nova Anime AM v6.0 (2.9B) UNet (~5.8GB) ─────────────────────────────
 NOVA_UNET_NAME="novaAnimeAM_v6029B.safetensors"
-NOVA_UNET_URL="https://huggingface.co/Kutches/Anim4/resolve/main/novaAnimeAM_v6029B.safetensors"
+NOVA_UNET_URL="https://huggingface.co/mogaru99/novaAnimeAM_v6029B/resolve/main/novaAnimeAM_v6029B.safetensors"
 
 if [ -f "$DIFFUSION_DIR/$NOVA_UNET_NAME" ]; then
     echo "✅ Nova Anime AM v6.0 UNet already exists — skipping download."

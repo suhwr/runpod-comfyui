@@ -13,7 +13,7 @@ ENV DEBIAN_FRONTEND=noninteractive \
     COMFY_DIR=/app/ComfyUI \
     COMFY_HOST=127.0.0.1:8188 \
     NOVA_UNET_NAME=novaAnimeAM_v6029B.safetensors \
-    NOVA_UNET_URL=https://huggingface.co/Kutches/Anim4/resolve/main/novaAnimeAM_v6029B.safetensors \
+    NOVA_UNET_URL=https://huggingface.co/mogaru99/novaAnimeAM_v6029B/resolve/main/novaAnimeAM_v6029B.safetensors \
     ORANGE_UNET_NAME=novaOrangeAM_v4029B.safetensors \
     ORANGE_UNET_URL=https://huggingface.co/Kutches/Anim4/resolve/main/novaOrangeAM_v4029B.safetensors \
     SILVERMOON_UNET_NAME=SilvermoonMix-Anima29B-Evolved-V2.3.safetensors \
@@ -76,7 +76,7 @@ RUN mkdir -p /app/ComfyUI/models/checkpoints \
 # 6a. Nova Anime AM v6.0 UNet (~5.8 GB)
 RUN aria2c -c -x 16 -s 16 -k 1M --file-allocation=none \
     --dir=/app/ComfyUI/models/diffusion_models --out=novaAnimeAM_v6029B.safetensors \
-    https://huggingface.co/Kutches/Anim4/resolve/main/novaAnimeAM_v6029B.safetensors
+    https://huggingface.co/mogaru99/novaAnimeAM_v6029B/resolve/main/novaAnimeAM_v6029B.safetensors
 
 # 6b. Qwen Text Encoder (~1.1 GB) & Qwen VAE (~240 MB)
 RUN aria2c -c -x 8 -s 8 -k 1M --file-allocation=none \
