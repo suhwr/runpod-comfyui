@@ -24,7 +24,6 @@ logger = logging.getLogger("warmup")
 COMFY_HOST = os.environ.get("COMFY_HOST", "127.0.0.1:8188")
 COMFY_DIR = os.environ.get("COMFY_DIR", "/app/ComfyUI")
 WORKFLOW_NOVA_PATH = "/app/workflow_nova.json"
-WORKFLOW_NOOBAI_PATH = "/app/workflow_noobai.json"
 
 
 def run_micro_warmup(workflow_path: str, latent_node: str, sampler_node: str, clean_prefix: str, name: str) -> bool:
@@ -97,20 +96,7 @@ def run_micro_warmup(workflow_path: str, latent_node: str, sampler_node: str, cl
 
 
 def prewarm_comfyui() -> bool:
-    # 1. Prewarm NoobAI-XL first (if checkpoint exists)
-    noobai_ckpt = os.path.join(COMFY_DIR, "models", "checkpoints", "NoobAI-XL-v1.1.safetensors")
-    if os.path.exists(noobai_ckpt):
-        run_micro_warmup(
-            workflow_path=WORKFLOW_NOOBAI_PATH,
-            latent_node="4",
-            sampler_node="5",
-            clean_prefix="ComfyUI_NoobAI",
-            name="NoobAI-XL v1.1",
-        )
-    else:
-        logger.info("NoobAI-XL checkpoint not present yet; skipping NoobAI warmup.")
-
-    # 2. Prewarm Nova Anime AM (Default model - sits ready in active VRAM)
+    # Prewarm Nova Anime AM v6.0 (Default model - sits ready in active VRAM with pre-compiled CUDA kernels)
     run_micro_warmup(
         workflow_path=WORKFLOW_NOVA_PATH,
         latent_node="6",
@@ -119,7 +105,7 @@ def prewarm_comfyui() -> bool:
         name="Nova Anime AM v6.0",
     )
 
-    logger.info("✨ Dual-Model GPU VRAM Pre-warming complete! Models are hot and ready for sub-second start!")
+    logger.info("✨ Pure-DiT GPU VRAM Pre-warming complete! Model is hot and ready for sub-second start!")
     return True
 
 

@@ -44,31 +44,39 @@ MAX_CONCURRENCY = max(1, int(os.environ.get("MAX_CONCURRENCY", "1")))
 # File paths
 TEMPLATE_DIR = os.path.dirname(__file__)
 WORKFLOW_NOVA_PATH = os.path.join(TEMPLATE_DIR, "workflow_nova.json")
-WORKFLOW_NOOBAI_PATH = os.path.join(TEMPLATE_DIR, "workflow_noobai.json")
 
-# Model Filenames
-NOVA_UNET_NAME = os.environ.get("NOVA_UNET_NAME", "novaAnimeAM_v5029B.safetensors")
+# Model Filenames (All 3 are pure 2.9B DiT sharing the same Qwen Text Encoder & VAE)
+NOVA_UNET_NAME = os.environ.get("NOVA_UNET_NAME", "novaAnimeAM_v6029B.safetensors")
+ORANGE_UNET_NAME = os.environ.get("ORANGE_UNET_NAME", "novaOrangeAM_v4029B.safetensors")
+SILVERMOON_UNET_NAME = os.environ.get("SILVERMOON_UNET_NAME", "SilvermoonMix-Anima29B-Evolved-V2.3.safetensors")
+
 NOVA_CLIP_NAME = os.environ.get("NOVA_CLIP_NAME", "qwen_3_06b_base.safetensors")
 NOVA_VAE_NAME = os.environ.get("NOVA_VAE_NAME", "qwen_image_vae.safetensors")
-NOOBAI_CKPT_NAME = os.environ.get("NOOBAI_CKPT_NAME", "NoobAI-XL-v1.1.safetensors")
 
-# Default quality tags (Cinematic lighting, delicate hair/eyes, exquisite facial features, atmospheric background)
+# Default quality tags
 NOVA_QUALITY_BOOSTER = (
     "masterpiece, best quality, score_9, score_8, score_7, very aesthetic, newest, absurdres, highres, highly detailed, "
     "delicate facial features, beautiful detailed eyes, detailed hair strands, "
     "cinematic lighting, soft volumetric illumination, vibrant colors, detailed scenery background, "
     "atmospheric depth"
 )
-NOVA_NEGATIVE_DEFAULT = (
+
+ORANGE_QUALITY_BOOSTER = (
+    "masterpiece, best quality, score_9, score_8, very aesthetic, newest, absurdres, highres, highly detailed, "
+    "semi-realistic anime, expressive facial features, beautiful realistic eyes, soft skin texture, "
+    "volumetric warm lighting, rich shadows, cinematic composition, depth of field"
+)
+
+SILVERMOON_QUALITY_BOOSTER = (
+    "masterpiece, best quality, score_9, score_8, very aesthetic, newest, absurdres, highres, highly detailed, "
+    "perfect anatomy, stable hands, beautiful expressive face, intricate eyes, delicate lineart, "
+    "soft ambient lighting, harmonious colors, detailed illustration"
+)
+
+NEGATIVE_DEFAULT = (
     "worst quality, low quality, early, old, score_1, score_2, score_3, monochrome, jpeg artifacts, "
     "lowres, blurry, watermark, signature, bad anatomy, bad hands, missing fingers, extra digits, deformed, "
     "flat colors, washed out, dull lighting, oversaturated, amateur"
-)
-
-NOOBAI_QUALITY_BOOSTER = "masterpiece, best quality, newest, absurdres, highres, safe, very aesthetic"
-NOOBAI_NEGATIVE_DEFAULT = (
-    "worst quality, old, early, low quality, lowres, signature, username, logo, "
-    "bad hands, mutated hands, missing fingers, extra digits, fewer digits, blurry, bad anatomy"
 )
 
 # ============================================================================ #
@@ -307,13 +315,26 @@ def ensure_comfyui_ready(timeout_seconds: int = 30) -> bool:
 
 
 def build_workflow_from_inputs(inputs: Dict[str, Any]) -> Tuple[Dict[str, Any], int, str]:
-    """Builds workflow based on chosen model ('nova' [default] or 'noobai')."""
+    """Builds workflow based on chosen model ('nova' [default], 'orange', or 'silvermoon')."""
     raw_prompt = inputs.get("prompt", "").strip()
     if not raw_prompt:
         raise ValueError("prompt is required")
 
     model_choice = str(inputs.get("model", "nova")).strip().lower()
-    is_noobai = "noob" in model_choice
+
+    # Determine UNet, display name, and quality booster
+    if "orange" in model_choice or "2.5d" in model_choice:
+        selected_unet = inputs.get("unet_name", ORANGE_UNET_NAME)
+        active_model_name = "Nova Orange AM (2.9B)"
+        quality_booster = ORANGE_QUALITY_BOOSTER
+    elif "silver" in model_choice or "moon" in model_choice:
+        selected_unet = inputs.get("unet_name", SILVERMOON_UNET_NAME)
+        active_model_name = "SilvermoonMix Anima Evolved (2.9B)"
+        quality_booster = SILVERMOON_QUALITY_BOOSTER
+    else:
+        selected_unet = inputs.get("unet_name", NOVA_UNET_NAME)
+        active_model_name = "Nova Anime AM v6.0 (2.9B)"
+        quality_booster = NOVA_QUALITY_BOOSTER
 
     seed = int(inputs.get("seed", -1))
     if seed <= 0:
@@ -321,80 +342,40 @@ def build_workflow_from_inputs(inputs: Dict[str, Any]) -> Tuple[Dict[str, Any], 
 
     custom_negative = inputs.get("negative_prompt", "").strip()
 
-    if is_noobai:
-        # ─── NOOBAI-XL v1.1 WORKFLOW (SDXL Native, no LoRA) ─────────────
-        active_model_name = "NoobAI-XL v1.1"
-        with open(WORKFLOW_NOOBAI_PATH, "r", encoding="utf-8") as f:
-            workflow = json.load(f)
+    with open(WORKFLOW_NOVA_PATH, "r", encoding="utf-8") as f:
+        workflow = json.load(f)
 
-        # NoobAI SDXL Danbooru token prioritization: quality anchor must lead prompt
-        if NOOBAI_QUALITY_BOOSTER not in raw_prompt:
-            positive_text = f"{NOOBAI_QUALITY_BOOSTER}, {raw_prompt}"
-        else:
-            positive_text = raw_prompt
-
-        if custom_negative:
-            negative_text = f"{NOOBAI_NEGATIVE_DEFAULT}, {custom_negative}"
-        else:
-            negative_text = NOOBAI_NEGATIVE_DEFAULT
-
-        width = int(inputs.get("width", 832))
-        height = int(inputs.get("height", 1216))
-        steps = int(inputs.get("steps", 28))
-        steps = min(35, max(18, steps))
-        cfg = float(inputs.get("cfg", 4.5))
-
-        sampler = inputs.get("sampler", "euler_ancestral")
-        scheduler = inputs.get("scheduler", "normal")
-
-        workflow["1"]["inputs"]["ckpt_name"] = inputs.get("checkpoint", NOOBAI_CKPT_NAME)
-        workflow["2"]["inputs"]["text"] = positive_text
-        workflow["3"]["inputs"]["text"] = negative_text
-        workflow["4"]["inputs"]["width"] = width
-        workflow["4"]["inputs"]["height"] = height
-        workflow["5"]["inputs"]["seed"] = seed
-        workflow["5"]["inputs"]["steps"] = steps
-        workflow["5"]["inputs"]["cfg"] = cfg
-        workflow["5"]["inputs"]["sampler_name"] = sampler
-        workflow["5"]["inputs"]["scheduler"] = scheduler
-
+    if quality_booster not in raw_prompt:
+        positive_text = f"{raw_prompt}, {quality_booster}"
     else:
-        # ─── NOVA ANIME AM v6.0 (2.9B) WORKFLOW (Anima DiT + Qwen) ──────
-        active_model_name = "Nova Anime AM (2.9B)"
-        with open(WORKFLOW_NOVA_PATH, "r", encoding="utf-8") as f:
-            workflow = json.load(f)
+        positive_text = raw_prompt
 
-        if NOVA_QUALITY_BOOSTER not in raw_prompt:
-            positive_text = f"{raw_prompt}, {NOVA_QUALITY_BOOSTER}"
-        else:
-            positive_text = raw_prompt
+    if custom_negative:
+        negative_text = f"{custom_negative}, {NEGATIVE_DEFAULT}"
+    else:
+        negative_text = NEGATIVE_DEFAULT
 
-        if custom_negative:
-            negative_text = f"{custom_negative}, {NOVA_NEGATIVE_DEFAULT}"
-        else:
-            negative_text = NOVA_NEGATIVE_DEFAULT
+    width = int(inputs.get("width", 768))
+    height = int(inputs.get("height", 1024))
+    steps = int(inputs.get("steps", 12))
+    steps = min(35, max(8, steps))
+    cfg = float(inputs.get("cfg", 2.6))
 
-        width = int(inputs.get("width", 768))
-        height = int(inputs.get("height", 1024))
-        steps = int(inputs.get("steps", 12))
-        steps = min(35, max(8, steps))
-        cfg = float(inputs.get("cfg", 2.6))
+    sampler = inputs.get("sampler", "er_sde")
+    scheduler = inputs.get("scheduler", "simple")
 
-        sampler = inputs.get("sampler", "er_sde")
-        scheduler = inputs.get("scheduler", "simple")
-
-        workflow["1"]["inputs"]["unet_name"] = inputs.get("unet_name", NOVA_UNET_NAME)
-        workflow["2"]["inputs"]["clip_name"] = inputs.get("clip_name", NOVA_CLIP_NAME)
-        workflow["3"]["inputs"]["vae_name"] = inputs.get("vae_name", NOVA_VAE_NAME)
-        workflow["4"]["inputs"]["text"] = positive_text
-        workflow["5"]["inputs"]["text"] = negative_text
-        workflow["6"]["inputs"]["width"] = width
-        workflow["6"]["inputs"]["height"] = height
-        workflow["7"]["inputs"]["seed"] = seed
-        workflow["7"]["inputs"]["steps"] = steps
-        workflow["7"]["inputs"]["cfg"] = cfg
-        workflow["7"]["inputs"]["sampler_name"] = sampler
-        workflow["7"]["inputs"]["scheduler"] = scheduler
+    workflow["1"]["inputs"]["unet_name"] = selected_unet
+    workflow["2"]["inputs"]["clip_name"] = inputs.get("clip_name", NOVA_CLIP_NAME)
+    workflow["3"]["inputs"]["vae_name"] = inputs.get("vae_name", NOVA_VAE_NAME)
+    workflow["4"]["inputs"]["text"] = positive_text
+    workflow["5"]["inputs"]["text"] = negative_text
+    workflow["6"]["inputs"]["width"] = width
+    workflow["6"]["inputs"]["height"] = height
+    workflow["7"]["inputs"]["seed"] = seed
+    workflow["7"]["inputs"]["steps"] = steps
+    workflow["7"]["inputs"]["cfg"] = cfg
+    workflow["7"]["inputs"]["sampler_name"] = sampler
+    workflow["7"]["inputs"]["scheduler"] = scheduler
 
     return workflow, seed, active_model_name
 

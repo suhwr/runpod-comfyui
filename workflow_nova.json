@@ -1,7 +1,7 @@
 {
   "1": {
     "inputs": {
-      "unet_name": "novaAnimeAM_v5029B.safetensors",
+      "unet_name": "novaAnimeAM_v6029B.safetensors",
       "weight_dtype": "default"
     },
     "class_type": "UNETLoader",
