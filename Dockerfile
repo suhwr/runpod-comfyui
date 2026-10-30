@@ -7,7 +7,7 @@ FROM nvidia/cuda:12.4.1-runtime-ubuntu22.04
 ENV DEBIAN_FRONTEND=noninteractive \
     PYTHONUNBUFFERED=1 \
     PIP_PREFER_BINARY=1 \
-    PREWARM_MODEL=true \
+    PREWARM_MODEL=false \
     LD_LIBRARY_PATH=/usr/local/cuda/lib64:${LD_LIBRARY_PATH} \
     CC=/usr/bin/gcc \
     COMFY_DIR=/app/ComfyUI \

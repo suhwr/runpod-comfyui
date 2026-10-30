@@ -171,8 +171,9 @@ done
 echo "✅ ComfyUI is up and running healthy with Dual-Model support!"
 
 # 6. Pre-warm default model into GPU VRAM
-#    Ensures models and CUDA kernels are hot in VRAM before user requests arrive (Sub-second start!)
-if [ "${PREWARM_MODEL:-true}" = "true" ]; then
+#    In Scale-to-Zero serverless mode, DISABLED by default to save 12-15s cold-start latency!
+#    The real user job loads the model directly on first inference.
+if [ "${PREWARM_MODEL:-false}" = "true" ]; then
     echo "🔥 Running VRAM Pre-warming..."
     python3 /app/warmup.py || true
 fi
