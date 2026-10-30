@@ -315,26 +315,26 @@ def ensure_comfyui_ready(timeout_seconds: int = 30) -> bool:
 
 
 def build_workflow_from_inputs(inputs: Dict[str, Any]) -> Tuple[Dict[str, Any], int, str]:
-    """Builds workflow based on chosen model ('nova' [default], 'orange', or 'silvermoon')."""
+    """Builds workflow based on chosen model ('silvermoon' [default], 'nova', or 'orange')."""
     raw_prompt = inputs.get("prompt", "").strip()
     if not raw_prompt:
         raise ValueError("prompt is required")
 
-    model_choice = str(inputs.get("model", "nova")).strip().lower()
+    model_choice = str(inputs.get("model", "silvermoon")).strip().lower()
 
     # Determine UNet, display name, and quality booster
     if "orange" in model_choice or "2.5d" in model_choice:
         selected_unet = inputs.get("unet_name", ORANGE_UNET_NAME)
         active_model_name = "Nova Orange AM (2.9B)"
         quality_booster = ORANGE_QUALITY_BOOSTER
-    elif "silver" in model_choice or "moon" in model_choice:
-        selected_unet = inputs.get("unet_name", SILVERMOON_UNET_NAME)
-        active_model_name = "SilvermoonMix Anima Evolved (2.9B)"
-        quality_booster = SILVERMOON_QUALITY_BOOSTER
-    else:
+    elif "nova" in model_choice or "anime" in model_choice or "v6" in model_choice:
         selected_unet = inputs.get("unet_name", NOVA_UNET_NAME)
         active_model_name = "Nova Anime AM v6.0 (2.9B)"
         quality_booster = NOVA_QUALITY_BOOSTER
+    else:
+        selected_unet = inputs.get("unet_name", SILVERMOON_UNET_NAME)
+        active_model_name = "SilvermoonMix Anima Evolved (2.9B)"
+        quality_booster = SILVERMOON_QUALITY_BOOSTER
 
     seed = int(inputs.get("seed", -1))
     if seed <= 0:

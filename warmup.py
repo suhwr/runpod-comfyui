@@ -96,13 +96,13 @@ def run_micro_warmup(workflow_path: str, latent_node: str, sampler_node: str, cl
 
 
 def prewarm_comfyui() -> bool:
-    # Prewarm Nova Anime AM v6.0 (Default model - sits ready in active VRAM with pre-compiled CUDA kernels)
+    # Prewarm SilvermoonMix Anima Evolved (Default model - sits ready in active VRAM with pre-compiled CUDA kernels)
     run_micro_warmup(
         workflow_path=WORKFLOW_NOVA_PATH,
         latent_node="6",
         sampler_node="7",
-        clean_prefix="ComfyUI_NovaAnime",
-        name="Nova Anime AM v6.0",
+        clean_prefix="ComfyUI_Silvermoon",
+        name="SilvermoonMix Anima Evolved",
     )
 
     logger.info("✨ Pure-DiT GPU VRAM Pre-warming complete! Model is hot and ready for sub-second start!")

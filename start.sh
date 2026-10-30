@@ -89,18 +89,18 @@ for VOL in "/runpod-volume" "/workspace" "/volume"; do
 done
 
 # ==============================================================================
-# 2. Check & Download Nova Anime AM Components (Default Model)
+# 2. Check & Download SilvermoonMix Anima Evolved (Default Model)
 # ==============================================================================
-if [ -f "$DIFFUSION_DIR/$NOVA_UNET_NAME" ]; then
-    echo "⚡ Nova UNet is already available: $DIFFUSION_DIR/$NOVA_UNET_NAME"
+if [ -f "$DIFFUSION_DIR/$SILVERMOON_UNET_NAME" ]; then
+    echo "⚡ SilvermoonMix UNet is already available: $DIFFUSION_DIR/$SILVERMOON_UNET_NAME"
 else
-    echo "⬇️ Downloading Nova Anime AM UNet ($NOVA_UNET_NAME)..."
+    echo "⬇️ Downloading SilvermoonMix UNet ($SILVERMOON_UNET_NAME)..."
     if command -v aria2c >/dev/null 2>&1; then
-        aria2c -c -x 16 -s 16 -k 1M --file-allocation=none --dir="$DIFFUSION_DIR" --out="$NOVA_UNET_NAME" "$NOVA_UNET_URL"
+        aria2c -c -x 16 -s 16 -k 1M --file-allocation=none --dir="$DIFFUSION_DIR" --out="$SILVERMOON_UNET_NAME" "$SILVERMOON_UNET_URL"
     else
-        curl -L -# --retry 3 --connect-timeout 30 -o "$DIFFUSION_DIR/$NOVA_UNET_NAME" "$NOVA_UNET_URL"
+        curl -L -# --retry 3 --connect-timeout 30 -o "$DIFFUSION_DIR/$SILVERMOON_UNET_NAME" "$SILVERMOON_UNET_URL"
     fi
-    echo "✅ Nova UNet downloaded successfully!"
+    echo "✅ SilvermoonMix UNet downloaded successfully!"
 fi
 
 if [ -f "$TEXT_ENCODER_DIR/$NOVA_CLIP_NAME" ]; then
@@ -128,8 +128,22 @@ else
 fi
 
 # ==============================================================================
-# 3. Check & Download Nova Orange & SilvermoonMix in Background
+# 3. Check & Download Nova Anime v6.0 & Nova Orange in Background
 # ==============================================================================
+if [ -f "$DIFFUSION_DIR/$NOVA_UNET_NAME" ]; then
+    echo "⚡ Nova Anime UNet is already available: $DIFFUSION_DIR/$NOVA_UNET_NAME"
+elif [ "${DOWNLOAD_NOVA:-true}" = "true" ]; then
+    echo "⬇️ Downloading Nova Anime v6.0 UNet in background..."
+    (
+        if command -v aria2c >/dev/null 2>&1; then
+            aria2c -c -x 16 -s 16 -k 1M --file-allocation=none --dir="$DIFFUSION_DIR" --out="$NOVA_UNET_NAME" "$NOVA_UNET_URL"
+        else
+            curl -L -# --retry 3 --connect-timeout 30 -o "$DIFFUSION_DIR/$NOVA_UNET_NAME" "$NOVA_UNET_URL"
+        fi
+        echo "✅ Nova Anime v6.0 UNet download complete!"
+    ) &
+fi
+
 if [ -f "$DIFFUSION_DIR/$ORANGE_UNET_NAME" ]; then
     echo "⚡ Nova Orange UNet is already available: $DIFFUSION_DIR/$ORANGE_UNET_NAME"
 elif [ "${DOWNLOAD_ORANGE:-true}" = "true" ]; then
@@ -141,20 +155,6 @@ elif [ "${DOWNLOAD_ORANGE:-true}" = "true" ]; then
             curl -L -# --retry 3 --connect-timeout 30 -o "$DIFFUSION_DIR/$ORANGE_UNET_NAME" "$ORANGE_UNET_URL"
         fi
         echo "✅ Nova Orange UNet download complete!"
-    ) &
-fi
-
-if [ -f "$DIFFUSION_DIR/$SILVERMOON_UNET_NAME" ]; then
-    echo "⚡ SilvermoonMix UNet is already available: $DIFFUSION_DIR/$SILVERMOON_UNET_NAME"
-elif [ "${DOWNLOAD_SILVERMOON:-true}" = "true" ]; then
-    echo "⬇️ Downloading SilvermoonMix UNet in background..."
-    (
-        if command -v aria2c >/dev/null 2>&1; then
-            aria2c -c -x 16 -s 16 -k 1M --file-allocation=none --dir="$DIFFUSION_DIR" --out="$SILVERMOON_UNET_NAME" "$SILVERMOON_UNET_URL"
-        else
-            curl -L -# --retry 3 --connect-timeout 30 -o "$DIFFUSION_DIR/$SILVERMOON_UNET_NAME" "$SILVERMOON_UNET_URL"
-        fi
-        echo "✅ SilvermoonMix UNet download complete!"
     ) &
 fi
 

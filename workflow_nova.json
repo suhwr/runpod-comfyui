@@ -1,12 +1,12 @@
 {
   "1": {
     "inputs": {
-      "unet_name": "novaAnimeAM_v6029B.safetensors",
+      "unet_name": "SilvermoonMix-Anima29B-Evolved-V2.3.safetensors",
       "weight_dtype": "default"
     },
     "class_type": "UNETLoader",
     "_meta": {
-      "title": "Load Diffusion Model (Nova Anime AM 2.9B)"
+      "title": "Load Diffusion Model (SilvermoonMix Anima 2.9B)"
     }
   },
   "2": {
