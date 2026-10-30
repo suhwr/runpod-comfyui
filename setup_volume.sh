@@ -33,8 +33,8 @@ if ! command -v aria2c >/dev/null 2>&1; then
 fi
 
 # ─── 1. Nova Anime AM (2.9B) UNet (~5.5GB) ──────────────────────────────────
-NOVA_UNET_NAME="novaAnimeAM_v6029B.safetensors"
-NOVA_UNET_URL="https://huggingface.co/mogaru99/novaAnimeAM_v6029B/resolve/main/novaAnimeAM_v6029B.safetensors"
+NOVA_UNET_NAME="novaAnimeAM_v5029B.safetensors"
+NOVA_UNET_URL="https://huggingface.co/Kutches/Anim4/resolve/main/novaAnimeAM_v5029B.safetensors"
 
 if [ -f "$DIFFUSION_DIR/$NOVA_UNET_NAME" ]; then
     echo "✅ Nova UNet already exists — skipping download."

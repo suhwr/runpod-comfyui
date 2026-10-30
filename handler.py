@@ -47,7 +47,7 @@ WORKFLOW_NOVA_PATH = os.path.join(TEMPLATE_DIR, "workflow_nova.json")
 WORKFLOW_NOOBAI_PATH = os.path.join(TEMPLATE_DIR, "workflow_noobai.json")
 
 # Model Filenames
-NOVA_UNET_NAME = os.environ.get("NOVA_UNET_NAME", "novaAnimeAM_v6029B.safetensors")
+NOVA_UNET_NAME = os.environ.get("NOVA_UNET_NAME", "novaAnimeAM_v5029B.safetensors")
 NOVA_CLIP_NAME = os.environ.get("NOVA_CLIP_NAME", "qwen_3_06b_base.safetensors")
 NOVA_VAE_NAME = os.environ.get("NOVA_VAE_NAME", "qwen_image_vae.safetensors")
 NOOBAI_CKPT_NAME = os.environ.get("NOOBAI_CKPT_NAME", "NoobAI-XL-v1.1.safetensors")

@@ -17,9 +17,9 @@ CHECKPOINT_DIR="/app/ComfyUI/models/checkpoints"
 mkdir -p "$DIFFUSION_DIR" "$TEXT_ENCODER_DIR" "$VAE_DIR" "$CHECKPOINT_DIR"
 
 # ─── Dual Model Config ────────────────────────────────────────────────────────
-# Model 1: Nova Anime AM v6.0 (2.9B) [Default]
-NOVA_UNET_NAME="${NOVA_UNET_NAME:-novaAnimeAM_v6029B.safetensors}"
-NOVA_UNET_URL="${NOVA_UNET_URL:-https://huggingface.co/mogaru99/novaAnimeAM_v6029B/resolve/main/novaAnimeAM_v6029B.safetensors}"
+# Model 1: Nova Anime AM v5.0 (2.9B) [Default]
+NOVA_UNET_NAME="${NOVA_UNET_NAME:-novaAnimeAM_v5029B.safetensors}"
+NOVA_UNET_URL="${NOVA_UNET_URL:-https://huggingface.co/Kutches/Anim4/resolve/main/novaAnimeAM_v5029B.safetensors}"
 
 NOVA_CLIP_NAME="${NOVA_CLIP_NAME:-qwen_3_06b_base.safetensors}"
 NOVA_CLIP_URL="${NOVA_CLIP_URL:-https://huggingface.co/circlestone-labs/Anima/resolve/main/split_files/text_encoders/qwen_3_06b_base.safetensors}"

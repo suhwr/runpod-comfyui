@@ -12,8 +12,8 @@ ENV DEBIAN_FRONTEND=noninteractive \
     CC=/usr/bin/gcc \
     COMFY_DIR=/app/ComfyUI \
     COMFY_HOST=127.0.0.1:8188 \
-    NOVA_UNET_NAME=novaAnimeAM_v6029B.safetensors \
-    NOVA_UNET_URL=https://huggingface.co/mogaru99/novaAnimeAM_v6029B/resolve/main/novaAnimeAM_v6029B.safetensors \
+    NOVA_UNET_NAME=novaAnimeAM_v5029B.safetensors \
+    NOVA_UNET_URL=https://huggingface.co/Kutches/Anim4/resolve/main/novaAnimeAM_v5029B.safetensors \
     NOVA_CLIP_NAME=qwen_3_06b_base.safetensors \
     NOVA_CLIP_URL=https://huggingface.co/circlestone-labs/Anima/resolve/main/split_files/text_encoders/qwen_3_06b_base.safetensors \
     NOVA_VAE_NAME=qwen_image_vae.safetensors \
@@ -71,10 +71,10 @@ RUN mkdir -p /app/ComfyUI/models/checkpoints \
 
 # 6. Bake models directly into the Docker image during build
 #    Eliminates runtime download latency completely across all GPU server rollings!
-# 6a. Nova Anime AM v6.0 UNet (~5.5 GB)
+# 6a. Nova Anime AM v5.0 UNet (~5.8 GB)
 RUN aria2c -c -x 16 -s 16 -k 1M --file-allocation=none \
-    --dir=/app/ComfyUI/models/diffusion_models --out=novaAnimeAM_v6029B.safetensors \
-    https://huggingface.co/mogaru99/novaAnimeAM_v6029B/resolve/main/novaAnimeAM_v6029B.safetensors
+    --dir=/app/ComfyUI/models/diffusion_models --out=novaAnimeAM_v5029B.safetensors \
+    https://huggingface.co/Kutches/Anim4/resolve/main/novaAnimeAM_v5029B.safetensors
 
 # 6b. Qwen Text Encoder (~1.1 GB) & Qwen VAE (~240 MB)
 RUN aria2c -c -x 8 -s 8 -k 1M --file-allocation=none \
