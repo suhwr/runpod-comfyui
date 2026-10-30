@@ -69,10 +69,10 @@
   "7": {
     "inputs": {
       "seed": 0,
-      "steps": 22,
-      "cfg": 4.5,
-      "sampler_name": "euler_ancestral",
-      "scheduler": "normal",
+      "steps": 12,
+      "cfg": 2.6,
+      "sampler_name": "er_sde",
+      "scheduler": "simple",
       "denoise": 1.0,
       "model": [
         "1",

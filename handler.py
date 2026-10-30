@@ -54,14 +54,14 @@ NOOBAI_CKPT_NAME = os.environ.get("NOOBAI_CKPT_NAME", "NoobAI-XL-v1.1.safetensor
 
 # Default quality tags (Cinematic lighting, delicate hair/eyes, exquisite facial features, atmospheric background)
 NOVA_QUALITY_BOOSTER = (
-    "masterpiece, best quality, newest, absurdres, highres, highly detailed, "
+    "masterpiece, best quality, score_9, score_8, score_7, very aesthetic, newest, absurdres, highres, highly detailed, "
     "delicate facial features, beautiful detailed eyes, detailed hair strands, "
     "cinematic lighting, soft volumetric illumination, vibrant colors, detailed scenery background, "
     "atmospheric depth"
 )
 NOVA_NEGATIVE_DEFAULT = (
-    "worst quality, low quality, lowres, blurry, jpeg artifacts, watermark, signature, "
-    "bad anatomy, bad hands, missing fingers, extra digits, deformed, "
+    "worst quality, low quality, early, old, score_1, score_2, score_3, monochrome, jpeg artifacts, "
+    "lowres, blurry, watermark, signature, bad anatomy, bad hands, missing fingers, extra digits, deformed, "
     "flat colors, washed out, dull lighting, oversaturated, amateur"
 )
 
@@ -376,12 +376,12 @@ def build_workflow_from_inputs(inputs: Dict[str, Any]) -> Tuple[Dict[str, Any], 
 
         width = int(inputs.get("width", 768))
         height = int(inputs.get("height", 1024))
-        steps = int(inputs.get("steps", 22))
-        steps = min(35, max(15, steps))
-        cfg = float(inputs.get("cfg", 4.5))
+        steps = int(inputs.get("steps", 12))
+        steps = min(35, max(8, steps))
+        cfg = float(inputs.get("cfg", 2.6))
 
-        sampler = inputs.get("sampler", "euler_ancestral")
-        scheduler = inputs.get("scheduler", "normal")
+        sampler = inputs.get("sampler", "er_sde")
+        scheduler = inputs.get("scheduler", "simple")
 
         workflow["1"]["inputs"]["unet_name"] = inputs.get("unet_name", NOVA_UNET_NAME)
         workflow["2"]["inputs"]["clip_name"] = inputs.get("clip_name", NOVA_CLIP_NAME)
