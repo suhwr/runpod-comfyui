@@ -69,13 +69,16 @@ ORANGE_QUALITY_BOOSTER = (
 
 SILVERMOON_QUALITY_BOOSTER = (
     "masterpiece, best quality, score_9, score_8, very aesthetic, newest, absurdres, highres, highly detailed, "
-    "perfect anatomy, stable hands, beautiful expressive face, intricate eyes, delicate lineart, "
+    "perfect anatomy, accurate hands, finely detailed fingers, beautiful expressive face, intricate eyes, delicate lineart, "
     "soft ambient lighting, harmonious colors, detailed illustration"
 )
 
 NEGATIVE_DEFAULT = (
-    "worst quality, low quality, early, old, score_1, score_2, score_3, monochrome, jpeg artifacts, "
-    "lowres, blurry, watermark, signature, bad anatomy, bad hands, missing fingers, extra digits, deformed, "
+    "worst quality, low quality, early, old, score_1, score_2, score_3, score_4, score_5, score_6, monochrome, jpeg artifacts, "
+    "lowres, blurry, watermark, signature, username, error, "
+    "bad anatomy, bad hands, missing fingers, extra digits, extra fingers, fewer digits, fused fingers, "
+    "elongated fingers, long fingers, malformed fingers, mutated hands, poorly drawn hands, disfigured, "
+    "bad proportions, gross proportions, malformed limbs, extra limbs, missing limbs, floating limbs, "
     "flat colors, washed out, dull lighting, oversaturated, amateur"
 )
 
