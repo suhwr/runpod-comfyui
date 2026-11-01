@@ -58,19 +58,20 @@ NOVA_QUALITY_BOOSTER = (
     "masterpiece, best quality, score_9, score_8, score_7, very aesthetic, newest, absurdres, highres, highly detailed, "
     "delicate facial features, beautiful detailed eyes, detailed hair strands, "
     "cinematic lighting, soft volumetric illumination, vibrant colors, detailed scenery background, "
-    "atmospheric depth"
+    "scenic environment, atmospheric depth, rich environmental details"
 )
 
 ORANGE_QUALITY_BOOSTER = (
     "masterpiece, best quality, score_9, score_8, very aesthetic, newest, absurdres, highres, highly detailed, "
     "semi-realistic anime, expressive facial features, beautiful realistic eyes, soft skin texture, "
-    "volumetric warm lighting, rich shadows, cinematic composition, depth of field"
+    "detailed scenery background, scenic environment, atmospheric depth, volumetric warm lighting, "
+    "rich shadows, cinematic composition, depth of field"
 )
 
 SILVERMOON_QUALITY_BOOSTER = (
     "masterpiece, best quality, score_9, score_8, very aesthetic, newest, absurdres, highres, highly detailed, "
     "perfect anatomy, accurate hands, finely detailed fingers, beautiful expressive face, intricate eyes, delicate lineart, "
-    "soft ambient lighting, harmonious colors, detailed illustration"
+    "detailed scenery background, atmospheric ambient lighting, rich environment, harmonious colors, detailed illustration"
 )
 
 NEGATIVE_DEFAULT = (
@@ -80,6 +81,13 @@ NEGATIVE_DEFAULT = (
     "elongated fingers, long fingers, malformed fingers, mutated hands, poorly drawn hands, disfigured, "
     "bad proportions, gross proportions, malformed limbs, extra limbs, missing limbs, floating limbs, "
     "flat colors, washed out, dull lighting, oversaturated, amateur"
+)
+
+NEGATIVE_BG_BLOCK = (
+    "bad background, poorly drawn background, simple background, white background, "
+    "plain background, blank background, solid background, empty background, "
+    "flat background, grey background, gray background, monochrome background, "
+    "minimalist background, void background, lacking background, unfinished background"
 )
 
 # ============================================================================ #
@@ -353,10 +361,29 @@ def build_workflow_from_inputs(inputs: Dict[str, Any]) -> Tuple[Dict[str, Any], 
     else:
         positive_text = raw_prompt
 
+    # Detect if user intentionally requested a plain, solid, or white background
+    user_wants_plain_bg = any(
+        kw in raw_prompt.lower()
+        for kw in (
+            "white background",
+            "simple background",
+            "plain background",
+            "blank background",
+            "solid background",
+            "empty background",
+            "transparent background",
+            "monochrome background",
+        )
+    )
+
+    base_negative = NEGATIVE_DEFAULT
+    if not user_wants_plain_bg:
+        base_negative = f"{NEGATIVE_DEFAULT}, {NEGATIVE_BG_BLOCK}"
+
     if custom_negative:
-        negative_text = f"{custom_negative}, {NEGATIVE_DEFAULT}"
+        negative_text = f"{custom_negative}, {base_negative}"
     else:
-        negative_text = NEGATIVE_DEFAULT
+        negative_text = base_negative
 
     width = int(inputs.get("width", 768))
     height = int(inputs.get("height", 1024))
