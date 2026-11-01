@@ -71,14 +71,24 @@ RUN mkdir -p /app/ComfyUI/models/checkpoints \
              /app/ComfyUI/models/vae \
              /app/ComfyUI/output
 
-# 6. Bake default models directly into the Docker image during build
+# 6. Bake all 3 Pure-DiT models + Qwen Text Encoder & VAE directly into the Docker image
 #    Eliminates runtime download latency completely across all GPU server rollings!
 # 6a. SilvermoonMix Anima Evolved UNet (~5.8 GB) [Default Model]
 RUN aria2c -c -x 16 -s 16 -k 1M --file-allocation=none \
     --dir=/app/ComfyUI/models/diffusion_models --out=SilvermoonMix-Anima29B-Evolved-V2.3.safetensors \
     https://huggingface.co/silvermoong/SilvermoonMix-Anima-Evolved/resolve/main/SilvermoonMix-Anima29B-Evolved-V2.3.safetensors
 
-# 6b. Qwen Text Encoder (~1.1 GB) & Qwen VAE (~240 MB)
+# 6b. Nova Anime AM v6.0 UNet (~5.8 GB) [2D Anime Flagship]
+RUN aria2c -c -x 16 -s 16 -k 1M --file-allocation=none \
+    --dir=/app/ComfyUI/models/diffusion_models --out=novaAnimeAM_v6029B.safetensors \
+    https://huggingface.co/mogaru99/novaAnimeAM_v6029B/resolve/main/novaAnimeAM_v6029B.safetensors
+
+# 6c. Nova Orange AM UNet (~5.5 GB) [2.5D Semi-Realistic Anime]
+RUN aria2c -c -x 16 -s 16 -k 1M --file-allocation=none \
+    --dir=/app/ComfyUI/models/diffusion_models --out=novaOrangeAM_v4029B.safetensors \
+    https://huggingface.co/Kutches/Anim4/resolve/main/novaOrangeAM_v4029B.safetensors
+
+# 6d. Qwen Text Encoder (~1.1 GB) & Qwen VAE (~240 MB)
 RUN aria2c -c -x 8 -s 8 -k 1M --file-allocation=none \
     --dir=/app/ComfyUI/models/text_encoders --out=qwen_3_06b_base.safetensors \
     https://huggingface.co/circlestone-labs/Anima/resolve/main/split_files/text_encoders/qwen_3_06b_base.safetensors \
