@@ -1,12 +1,11 @@
 #!/usr/bin/env python3
 """
-warmup.py — Dual-Model VRAM Pre-warming script for ComfyUI Serverless Worker
+warmup.py — Pure-DiT VRAM Pre-warming script for ComfyUI Serverless Worker
 
 Executes a 1-step minimal latent inference during container boot so that:
-  1. NoobAI-XL v1.1 and Nova Anime AM v6.0 are both loaded into memory / GPU VRAM
+  1. Nova Anime AM v6.0 (2.9B DiT) and Qwen Text Encoder/VAE are loaded into memory / GPU VRAM
      before the worker begins accepting user jobs.
-  2. The first user request experiences ZERO seconds model-loading latency,
-     regardless of whether they request Nova or NoobAI on a brand-new worker!
+  2. The first user request experiences ZERO seconds model-loading latency!
 """
 
 import json
@@ -23,7 +22,7 @@ logger = logging.getLogger("warmup")
 
 COMFY_HOST = os.environ.get("COMFY_HOST", "127.0.0.1:8188")
 COMFY_DIR = os.environ.get("COMFY_DIR", "/app/ComfyUI")
-WORKFLOW_NOVA_PATH = "/app/workflow_nova.json"
+WORKFLOW_ANIMA_PATH = "/app/workflow_anima.json"
 
 
 def run_micro_warmup(workflow_path: str, latent_node: str, sampler_node: str, clean_prefix: str, name: str) -> bool:
@@ -96,13 +95,13 @@ def run_micro_warmup(workflow_path: str, latent_node: str, sampler_node: str, cl
 
 
 def prewarm_comfyui() -> bool:
-    # Prewarm SilvermoonMix Anima Evolved (Default model - sits ready in active VRAM with pre-compiled CUDA kernels)
+    # Prewarm Nova Anime AM v6.0 (Default model - sits ready in active VRAM with pre-compiled CUDA kernels)
     run_micro_warmup(
-        workflow_path=WORKFLOW_NOVA_PATH,
+        workflow_path=WORKFLOW_ANIMA_PATH,
         latent_node="6",
         sampler_node="7",
-        clean_prefix="ComfyUI_Silvermoon",
-        name="SilvermoonMix Anima Evolved",
+        clean_prefix="ComfyUI_NovaAnime",
+        name="Nova Anime AM v6.0",
     )
 
     logger.info("✨ Pure-DiT GPU VRAM Pre-warming complete! Model is hot and ready for sub-second start!")

@@ -1,6 +1,6 @@
 # ==============================================================================
 # Ultra-Optimized ComfyUI Anime Serverless Worker
-# Architecture: ComfyUI Headless Engine + Pure-DiT Trio (Nova Anime v6.0 + Nova Orange + SilvermoonMix)
+# Architecture: ComfyUI Headless Engine + Pure-DiT Anima (Nova Anime v6.0 + SilvermoonMix)
 # ==============================================================================
 FROM nvidia/cuda:12.4.1-runtime-ubuntu22.04
 
@@ -14,8 +14,6 @@ ENV DEBIAN_FRONTEND=noninteractive \
     COMFY_HOST=127.0.0.1:8188 \
     NOVA_UNET_NAME=novaAnimeAM_v6029B.safetensors \
     NOVA_UNET_URL=https://huggingface.co/mogaru99/novaAnimeAM_v6029B/resolve/main/novaAnimeAM_v6029B.safetensors \
-    ORANGE_UNET_NAME=novaOrangeAM_v4029B.safetensors \
-    ORANGE_UNET_URL=https://huggingface.co/Kutches/Anim4/resolve/main/novaOrangeAM_v4029B.safetensors \
     SILVERMOON_UNET_NAME=SilvermoonMix-Anima29B-Evolved-V2.3.safetensors \
     SILVERMOON_UNET_URL=https://huggingface.co/silvermoong/SilvermoonMix-Anima-Evolved/resolve/main/SilvermoonMix-Anima29B-Evolved-V2.3.safetensors \
     NOVA_CLIP_NAME=qwen_3_06b_base.safetensors \
@@ -71,24 +69,19 @@ RUN mkdir -p /app/ComfyUI/models/checkpoints \
              /app/ComfyUI/models/vae \
              /app/ComfyUI/output
 
-# 6. Bake all 3 Pure-DiT models + Qwen Text Encoder & VAE directly into the Docker image
+# 6. Bake Pure-DiT Anima models + Qwen Text Encoder & VAE directly into the Docker image
 #    Eliminates runtime download latency completely across all GPU server rollings!
-# 6a. SilvermoonMix Anima Evolved UNet (~5.8 GB) [Default Model]
-RUN aria2c -c -x 16 -s 16 -k 1M --file-allocation=none \
-    --dir=/app/ComfyUI/models/diffusion_models --out=SilvermoonMix-Anima29B-Evolved-V2.3.safetensors \
-    https://huggingface.co/silvermoong/SilvermoonMix-Anima-Evolved/resolve/main/SilvermoonMix-Anima29B-Evolved-V2.3.safetensors
-
-# 6b. Nova Anime AM v6.0 UNet (~5.8 GB) [2D Anime Flagship]
+# 6a. Nova Anime AM v6.0 UNet (~5.8 GB) [2D Anime Flagship & Default Model]
 RUN aria2c -c -x 16 -s 16 -k 1M --file-allocation=none \
     --dir=/app/ComfyUI/models/diffusion_models --out=novaAnimeAM_v6029B.safetensors \
     https://huggingface.co/mogaru99/novaAnimeAM_v6029B/resolve/main/novaAnimeAM_v6029B.safetensors
 
-# 6c. Nova Orange AM UNet (~5.5 GB) [2.5D Semi-Realistic Anime]
+# 6b. SilvermoonMix Anima Evolved UNet (~5.8 GB) [Aesthetic Digital Art & Soft Lighting]
 RUN aria2c -c -x 16 -s 16 -k 1M --file-allocation=none \
-    --dir=/app/ComfyUI/models/diffusion_models --out=novaOrangeAM_v4029B.safetensors \
-    https://huggingface.co/Kutches/Anim4/resolve/main/novaOrangeAM_v4029B.safetensors
+    --dir=/app/ComfyUI/models/diffusion_models --out=SilvermoonMix-Anima29B-Evolved-V2.3.safetensors \
+    https://huggingface.co/silvermoong/SilvermoonMix-Anima-Evolved/resolve/main/SilvermoonMix-Anima29B-Evolved-V2.3.safetensors
 
-# 6d. Qwen Text Encoder (~1.1 GB) & Qwen VAE (~240 MB)
+# 6c. Qwen Text Encoder (~1.1 GB) & Qwen VAE (~240 MB)
 RUN aria2c -c -x 8 -s 8 -k 1M --file-allocation=none \
     --dir=/app/ComfyUI/models/text_encoders --out=qwen_3_06b_base.safetensors \
     https://huggingface.co/circlestone-labs/Anima/resolve/main/split_files/text_encoders/qwen_3_06b_base.safetensors \
@@ -97,7 +90,7 @@ RUN aria2c -c -x 8 -s 8 -k 1M --file-allocation=none \
     https://huggingface.co/circlestone-labs/Anima/resolve/main/split_files/vae/qwen_image_vae.safetensors
 
 # 7. Copy handler, workflows, and startup script
-COPY workflow_nova.json /app/workflow_nova.json
+COPY workflow_anima.json /app/workflow_anima.json
 COPY handler.py /app/handler.py
 COPY warmup.py /app/warmup.py
 COPY start.sh /app/start.sh

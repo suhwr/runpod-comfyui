@@ -1,12 +1,11 @@
 #!/usr/bin/env bash
 # ==============================================================================
-# setup_volume.sh — Pure-DiT Trio Model Population Script for Network Volume
+# setup_volume.sh — Pure-DiT Anima Model Population Script for Network Volume
 #
 # Models downloaded:
-#   1. Nova Anime AM v6.0 (2.9B) [Anima DiT 2D Flagship]
-#   2. Nova Orange AM (2.9B) [Anima DiT 2.5D Semi-Realistic]
-#   3. SilvermoonMix Anima Evolved (2.9B) [Anima DiT Stable Hands & Soft Shading]
-#   4. Shared Qwen 2.5 (3B) Text Encoder & Qwen Image VAE
+#   1. Nova Anime AM v6.0 (2.9B) [Anima DiT 2D Flagship & Default]
+#   2. SilvermoonMix Anima Evolved (2.9B) [Anima DiT Aesthetic Art & Soft Shading]
+#   3. Shared Qwen 2.5 (3B) Text Encoder & Qwen Image VAE
 # ==============================================================================
 set -e
 
@@ -17,7 +16,7 @@ TEXT_ENCODER_DIR="$MODELS_DIR/text_encoders"
 VAE_DIR="$MODELS_DIR/vae"
 
 echo "================================================================"
-echo "  Pure-DiT Trio Model Network Volume Setup Script"
+echo "  Pure-DiT Anima Model Network Volume Setup Script"
 echo "  Target: $VOLUME_ROOT"
 echo "================================================================"
 
@@ -33,7 +32,7 @@ if ! command -v aria2c >/dev/null 2>&1; then
     apt-get update -qq && apt-get install -y -qq aria2
 fi
 
-# ─── 1. Nova Anime AM v6.0 (2.9B) UNet (~5.8GB) ─────────────────────────────
+# ─── 1. Nova Anime AM v6.0 (2.9B) UNet (~5.8GB) [Default Model] ───────────────
 NOVA_UNET_NAME="novaAnimeAM_v6029B.safetensors"
 NOVA_UNET_URL="https://huggingface.co/mogaru99/novaAnimeAM_v6029B/resolve/main/novaAnimeAM_v6029B.safetensors"
 
@@ -45,19 +44,7 @@ else
     echo "✅ Nova Anime AM v6.0 UNet downloaded!"
 fi
 
-# ─── 2. Nova Orange AM (2.9B) UNet (~5.5GB) ─────────────────────────────────
-ORANGE_UNET_NAME="novaOrangeAM_v4029B.safetensors"
-ORANGE_UNET_URL="https://huggingface.co/Kutches/Anim4/resolve/main/novaOrangeAM_v4029B.safetensors"
-
-if [ -f "$DIFFUSION_DIR/$ORANGE_UNET_NAME" ]; then
-    echo "✅ Nova Orange AM UNet already exists — skipping download."
-else
-    echo "⬇️ Downloading Nova Orange AM UNet (~5.5GB)..."
-    aria2c -c -x 16 -s 16 -k 1M --file-allocation=none --dir="$DIFFUSION_DIR" --out="$ORANGE_UNET_NAME" "$ORANGE_UNET_URL"
-    echo "✅ Nova Orange AM UNet downloaded!"
-fi
-
-# ─── 3. SilvermoonMix Anima Evolved (2.9B) UNet (~5.8GB) ─────────────────────
+# ─── 2. SilvermoonMix Anima Evolved (2.9B) UNet (~5.8GB) ─────────────────────
 SILVERMOON_UNET_NAME="SilvermoonMix-Anima29B-Evolved-V2.3.safetensors"
 SILVERMOON_UNET_URL="https://huggingface.co/silvermoong/SilvermoonMix-Anima-Evolved/resolve/main/SilvermoonMix-Anima29B-Evolved-V2.3.safetensors"
 

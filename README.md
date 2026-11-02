@@ -1,24 +1,24 @@
 # ComfyUI Anime Serverless Worker
 
-Production-grade, ultra-fast serverless worker powering SOTA anime generation with **ComfyUI**, **NoobAI-XL v1.1** (SDXL), and **Hyper-SD 8-Step LoRA**.
+Production-grade, ultra-fast serverless worker powering SOTA anime generation with **ComfyUI**, **Pure-DiT Anima Architecture** (CircleStone Labs & Comfy Org), **Nova Anime AM v6.0** (2.9B Flagship), and **SilvermoonMix-Anima-Evolved v2.3**.
 
 ---
 
 ## ⚡ Key Highlights
 
-1. **Top-Tier Anime Visuals (NoobAI-XL v1.1):**
-   State-of-the-art Danbooru tag comprehension, clean lineart, and precise anatomy.
-2. **Lightning-Fast Generation (~4s via Hyper-SD 8-Step LoRA):**
-   Accelerated 8-step sampling delivering crisp 1024px+ outputs in just ~4 seconds, slashing serverless GPU billing by up to 70%.
-3. **Headless ComfyUI Core:**
-   Executes directly on a lightweight headless ComfyUI daemon (`127.0.0.1:8188`) without frontend bloat.
-4. **Built-in SOTA Anime Workflow:**
-   Clients do not need to construct raw JSON graph payloads. Simply supply prompt parameters, and the worker parameterizes an optimized SDXL anime pipeline.
-5. **Auto Quality Enhancer:**
-   Automatically incorporates Danbooru quality tags (`masterpiece, best quality, very aesthetic`) and comprehensive negative filtering (`bad anatomy, bad hands, lowres`).
-6. **Multi-tier Output Fallback:**
+1. **State-of-the-Art Pure DiT Architecture (~2.9B Parameters):**
+   Powered by Flow-Matching Diffusion Transformers paired with the **Qwen 2.5 3B** text encoder and Qwen image VAE for superior prompt comprehension and visual aesthetic.
+2. **Flagship 2D Anime Quality (Nova Anime AM v6.0):**
+   Trained on millions of modern Danbooru tags for immaculate character fidelity (Genshin Impact, Honkai: Star Rail, Blue Archive, VTubers, seasonal anime).
+3. **Aesthetic Alternative (SilvermoonMix Anima Evolved v2.3):**
+   Fine-tuned for painterly digital illustrations, ambient lighting, and refined soft shading.
+4. **Sub-3s Inference Speed:**
+   Flow Matching sampler requires only 12–16 steps to render sharp 768×1024 / 832×1216 images in ~2.5 seconds on serverless GPUs.
+5. **Headless ComfyUI Core (`127.0.0.1:8188`):**
+   Runs a lightweight daemon stripped of GUI overhead with pre-warmed CUDA kernels.
+6. **Multi-tier Output Fallback Chain:**
    Generated artworks are uploaded through an automatic fallback chain:
-   $$\text{Uguu} \longrightarrow \text{Catbox} \longrightarrow \text{Uploadcare (Ucarecdn)} \longrightarrow \text{Base64}$$
+   $$\text{Backblaze B2 (Primary)} \longrightarrow \text{Uguu} \longrightarrow \text{Catbox} \longrightarrow \text{Uploadcare} \longrightarrow \text{Direct Base64}$$
 
 ---
 
@@ -27,16 +27,16 @@ Production-grade, ultra-fast serverless worker powering SOTA anime generation wi
 | Parameter | Type | Default | Description |
 | :--- | :---: | :---: | :--- |
 | `prompt` | `string` | *(Required)* | Positive anime prompt tags |
+| `model` | `string` | `"nova"` | Model selector: `"nova"` (Default) or `"silvermoon"` |
 | `negative_prompt` | `string` | `""` | Optional negative prompt overrides |
-| `width` | `integer` | `832` | Width in pixels (recommended: `832`, `1024`, `1216`) |
-| `height` | `integer` | `1216` | Height in pixels (recommended: `1216`, `1024`, `832`) |
-| `steps` | `integer` | `8` | Sampling steps (capped to 12 max for high throughput) |
-| `cfg` | `float` | `5.0` | CFG scale |
+| `width` | `integer` | `768` | Width in pixels (recommended: `768`, `832`, `1024`) |
+| `height` | `integer` | `1024` | Height in pixels (recommended: `1024`, `1216`) |
+| `steps` | `integer` | `12` | Sampling steps (Flow Matching: 12–16 optimal) |
+| `cfg` | `float` | `2.6` | Guidance scale (optimal for Anima DiT: 2.2–3.0) |
+| `sampler` | `string` | `"er_sde"` | Sampler name (`er_sde`, `euler`, `dpmpp_2m`) |
+| `scheduler` | `string` | `"simple"` | Scheduler name (`simple`, `normal`) |
 | `seed` | `integer` | `-1` | Random seed (`-1` for randomized generation) |
-| `model` | `string` | `null` | Optional checkpoint filename override |
-| `lora` | `string` | `null` | Optional LoRA filename override |
 | `workflow` | `object` | `null` | Optional raw ComfyUI API workflow JSON dict |
-| `catbox_key` | `string` | `null` | Optional Catbox userhash |
 
 ### Example Request:
 
@@ -44,9 +44,9 @@ Production-grade, ultra-fast serverless worker powering SOTA anime generation wi
 {
   "input": {
     "prompt": "1girl, silver hair, cat ears, school uniform, cherry blossoms",
-    "negative_prompt": "blurry, low quality",
-    "width": 832,
-    "height": 1216,
+    "model": "nova",
+    "width": 768,
+    "height": 1024,
     "seed": 1234567
   }
 }
@@ -59,14 +59,15 @@ Production-grade, ultra-fast serverless worker powering SOTA anime generation wi
 ```json
 {
   "status": "COMPLETED",
-  "execution_time_seconds": 3.84,
+  "execution_time_seconds": 2.45,
+  "model_used": "Nova Anime AM v6.0 (2.9B)",
   "seed": 1234567,
   "images": [
     {
-      "url": "https://a.uguu.se/xyz.png",
-      "file_name": "ComfyUI_Anime_00001_.png",
+      "url": "https://f005.backblazeb2.com/file/my-bucket/tmp/comfyui/image.png",
+      "file_name": "ComfyUI_00001_.png",
       "size_bytes": 1642890,
-      "storage": "uguu"
+      "storage": "backblaze_b2"
     }
   ]
 }

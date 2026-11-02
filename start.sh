@@ -17,19 +17,15 @@ CHECKPOINT_DIR="/app/ComfyUI/models/checkpoints"
 mkdir -p "$DIFFUSION_DIR" "$TEXT_ENCODER_DIR" "$VAE_DIR" "$CHECKPOINT_DIR"
 
 # ─── Pure DiT Anime Models Config ─────────────────────────────────────────────
-# Model 1: Nova Anime AM v6.0 (2.9B) [Default Anime 2D]
+# Model 1: Nova Anime AM v6.0 (2.9B) [Default Anime 2D Flagship]
 NOVA_UNET_NAME="${NOVA_UNET_NAME:-novaAnimeAM_v6029B.safetensors}"
 NOVA_UNET_URL="${NOVA_UNET_URL:-https://huggingface.co/mogaru99/novaAnimeAM_v6029B/resolve/main/novaAnimeAM_v6029B.safetensors}"
 
-# Model 2: Nova Orange AM (2.9B) [2.5D Semi-Realistic Anime]
-ORANGE_UNET_NAME="${ORANGE_UNET_NAME:-novaOrangeAM_v4029B.safetensors}"
-ORANGE_UNET_URL="${ORANGE_UNET_URL:-https://huggingface.co/Kutches/Anim4/resolve/main/novaOrangeAM_v4029B.safetensors}"
-
-# Model 3: SilvermoonMix Anima Evolved (2.9B) [Stable Hands & Soft Shading]
+# Model 2: SilvermoonMix Anima Evolved (2.9B) [Aesthetic Digital Art & Soft Lighting]
 SILVERMOON_UNET_NAME="${SILVERMOON_UNET_NAME:-SilvermoonMix-Anima29B-Evolved-V2.3.safetensors}"
 SILVERMOON_UNET_URL="${SILVERMOON_UNET_URL:-https://huggingface.co/silvermoong/SilvermoonMix-Anima-Evolved/resolve/main/SilvermoonMix-Anima29B-Evolved-V2.3.safetensors}"
 
-# Shared Text Encoder & VAE (Used across all 3 DiT models!)
+# Shared Text Encoder & VAE (Used across all Anima DiT models!)
 NOVA_CLIP_NAME="${NOVA_CLIP_NAME:-qwen_3_06b_base.safetensors}"
 NOVA_CLIP_URL="${NOVA_CLIP_URL:-https://huggingface.co/circlestone-labs/Anima/resolve/main/split_files/text_encoders/qwen_3_06b_base.safetensors}"
 
@@ -89,8 +85,20 @@ for VOL in "/runpod-volume" "/workspace" "/volume"; do
 done
 
 # ==============================================================================
-# 2. Check & Download SilvermoonMix Anima Evolved (Default Model)
+# 2. Check & Download Nova Anime AM v6.0 (Default Flagship Model)
 # ==============================================================================
+if [ -f "$DIFFUSION_DIR/$NOVA_UNET_NAME" ]; then
+    echo "⚡ Nova Anime AM v6.0 UNet is already available: $DIFFUSION_DIR/$NOVA_UNET_NAME"
+else
+    echo "⬇️ Downloading Nova Anime AM v6.0 UNet ($NOVA_UNET_NAME)..."
+    if command -v aria2c >/dev/null 2>&1; then
+        aria2c -c -x 16 -s 16 -k 1M --file-allocation=none --dir="$DIFFUSION_DIR" --out="$NOVA_UNET_NAME" "$NOVA_UNET_URL"
+    else
+        curl -L -# --retry 3 --connect-timeout 30 -o "$DIFFUSION_DIR/$NOVA_UNET_NAME" "$NOVA_UNET_URL"
+    fi
+    echo "✅ Nova Anime AM v6.0 UNet downloaded successfully!"
+fi
+
 if [ -f "$DIFFUSION_DIR/$SILVERMOON_UNET_NAME" ]; then
     echo "⚡ SilvermoonMix UNet is already available: $DIFFUSION_DIR/$SILVERMOON_UNET_NAME"
 else
@@ -125,37 +133,6 @@ else
         curl -L -# --retry 3 --connect-timeout 30 -o "$VAE_DIR/$NOVA_VAE_NAME" "$NOVA_VAE_URL"
     fi
     echo "✅ Qwen VAE downloaded successfully!"
-fi
-
-# ==============================================================================
-# 3. Check & Download Nova Anime v6.0 & Nova Orange in Background
-# ==============================================================================
-if [ -f "$DIFFUSION_DIR/$NOVA_UNET_NAME" ]; then
-    echo "⚡ Nova Anime UNet is already available: $DIFFUSION_DIR/$NOVA_UNET_NAME"
-elif [ "${DOWNLOAD_NOVA:-true}" = "true" ]; then
-    echo "⬇️ Downloading Nova Anime v6.0 UNet in background..."
-    (
-        if command -v aria2c >/dev/null 2>&1; then
-            aria2c -c -x 16 -s 16 -k 1M --file-allocation=none --dir="$DIFFUSION_DIR" --out="$NOVA_UNET_NAME" "$NOVA_UNET_URL"
-        else
-            curl -L -# --retry 3 --connect-timeout 30 -o "$DIFFUSION_DIR/$NOVA_UNET_NAME" "$NOVA_UNET_URL"
-        fi
-        echo "✅ Nova Anime v6.0 UNet download complete!"
-    ) &
-fi
-
-if [ -f "$DIFFUSION_DIR/$ORANGE_UNET_NAME" ]; then
-    echo "⚡ Nova Orange UNet is already available: $DIFFUSION_DIR/$ORANGE_UNET_NAME"
-elif [ "${DOWNLOAD_ORANGE:-true}" = "true" ]; then
-    echo "⬇️ Downloading Nova Orange UNet in background..."
-    (
-        if command -v aria2c >/dev/null 2>&1; then
-            aria2c -c -x 16 -s 16 -k 1M --file-allocation=none --dir="$DIFFUSION_DIR" --out="$ORANGE_UNET_NAME" "$ORANGE_UNET_URL"
-        else
-            curl -L -# --retry 3 --connect-timeout 30 -o "$DIFFUSION_DIR/$ORANGE_UNET_NAME" "$ORANGE_UNET_URL"
-        fi
-        echo "✅ Nova Orange UNet download complete!"
-    ) &
 fi
 
 export PYTHONUNBUFFERED=1
@@ -196,7 +173,7 @@ while ! curl -s -f http://127.0.0.1:8188/ > /dev/null 2>&1; do
     fi
 done
 
-echo "✅ ComfyUI is up and running healthy with Pure-DiT Trio Model support (Nova Anime v6.0, Nova Orange, SilvermoonMix)!"
+echo "✅ ComfyUI is up and running healthy with Pure-DiT Anima support (Nova Anime v6.0 default, SilvermoonMix)!"
 
 # 6. Pre-warm default model into GPU VRAM
 #    In Scale-to-Zero serverless mode, DISABLED by default to save 12-15s cold-start latency!

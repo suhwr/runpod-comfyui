@@ -43,12 +43,12 @@ MAX_CONCURRENCY = max(1, int(os.environ.get("MAX_CONCURRENCY", "1")))
 
 # File paths
 TEMPLATE_DIR = os.path.dirname(__file__)
-WORKFLOW_NOVA_PATH = os.path.join(TEMPLATE_DIR, "workflow_nova.json")
+WORKFLOW_ANIMA_PATH = os.path.join(TEMPLATE_DIR, "workflow_anima.json")
 
-# Model Filenames (All 3 are pure 2.9B DiT sharing the same Qwen Text Encoder & VAE)
+# Model Filenames (Pure 2.9B DiT sharing the same Qwen Text Encoder & VAE)
 NOVA_UNET_NAME = os.environ.get("NOVA_UNET_NAME", "novaAnimeAM_v6029B.safetensors")
-ORANGE_UNET_NAME = os.environ.get("ORANGE_UNET_NAME", "novaOrangeAM_v4029B.safetensors")
 SILVERMOON_UNET_NAME = os.environ.get("SILVERMOON_UNET_NAME", "SilvermoonMix-Anima29B-Evolved-V2.3.safetensors")
+ORANGE_UNET_NAME = os.environ.get("ORANGE_UNET_NAME", "novaOrangeAM_v4029B.safetensors")
 
 NOVA_CLIP_NAME = os.environ.get("NOVA_CLIP_NAME", "qwen_3_06b_base.safetensors")
 NOVA_VAE_NAME = os.environ.get("NOVA_VAE_NAME", "qwen_image_vae.safetensors")
@@ -326,26 +326,34 @@ def ensure_comfyui_ready(timeout_seconds: int = 30) -> bool:
 
 
 def build_workflow_from_inputs(inputs: Dict[str, Any]) -> Tuple[Dict[str, Any], int, str]:
-    """Builds workflow based on chosen model ('silvermoon' [default], 'nova', or 'orange')."""
+    """Builds workflow based on chosen model ('nova' [default], 'silvermoon', or 'orange')."""
     raw_prompt = inputs.get("prompt", "").strip()
     if not raw_prompt:
         raise ValueError("prompt is required")
 
-    model_choice = str(inputs.get("model", "silvermoon")).strip().lower()
+    model_choice = str(inputs.get("model", "nova")).strip().lower()
 
     # Determine UNet, display name, and quality booster
-    if "orange" in model_choice or "2.5d" in model_choice:
-        selected_unet = inputs.get("unet_name", ORANGE_UNET_NAME)
-        active_model_name = "Nova Orange AM (2.9B)"
-        quality_booster = ORANGE_QUALITY_BOOSTER
-    elif "nova" in model_choice or "anime" in model_choice or "v6" in model_choice:
-        selected_unet = inputs.get("unet_name", NOVA_UNET_NAME)
-        active_model_name = "Nova Anime AM v6.0 (2.9B)"
-        quality_booster = NOVA_QUALITY_BOOSTER
-    else:
+    if "silvermoon" in model_choice or "silver" in model_choice or "moon" in model_choice:
         selected_unet = inputs.get("unet_name", SILVERMOON_UNET_NAME)
         active_model_name = "SilvermoonMix Anima Evolved (2.9B)"
         quality_booster = SILVERMOON_QUALITY_BOOSTER
+    elif "orange" in model_choice or "2.5d" in model_choice:
+        orange_path = os.path.join(COMFY_DIR, "models", "diffusion_models", ORANGE_UNET_NAME)
+        if os.path.exists(orange_path):
+            selected_unet = inputs.get("unet_name", ORANGE_UNET_NAME)
+            active_model_name = "Nova Orange AM (2.9B)"
+            quality_booster = ORANGE_QUALITY_BOOSTER
+        else:
+            logger.info("Nova Orange AM UNet not found on disk, gracefully falling back to Nova Anime AM v6.0")
+            selected_unet = inputs.get("unet_name", NOVA_UNET_NAME)
+            active_model_name = "Nova Anime AM v6.0 (2.9B)"
+            quality_booster = NOVA_QUALITY_BOOSTER
+    else:
+        # Default: Nova Anime AM v6.0 (2D Anime Flagship & Danbooru Master)
+        selected_unet = inputs.get("unet_name", NOVA_UNET_NAME)
+        active_model_name = "Nova Anime AM v6.0 (2.9B)"
+        quality_booster = NOVA_QUALITY_BOOSTER
 
     seed = int(inputs.get("seed", -1))
     if seed <= 0:
@@ -353,7 +361,7 @@ def build_workflow_from_inputs(inputs: Dict[str, Any]) -> Tuple[Dict[str, Any], 
 
     custom_negative = inputs.get("negative_prompt", "").strip()
 
-    with open(WORKFLOW_NOVA_PATH, "r", encoding="utf-8") as f:
+    with open(WORKFLOW_ANIMA_PATH, "r", encoding="utf-8") as f:
         workflow = json.load(f)
 
     if quality_booster not in raw_prompt:
