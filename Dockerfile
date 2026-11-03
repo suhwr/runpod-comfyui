@@ -1,12 +1,16 @@
 # ==============================================================================
 # Ultra-Optimized ComfyUI Anime Serverless Worker
 # Architecture: ComfyUI Headless Engine + Pure-DiT Anima (Nova Anime v6.0 + SilvermoonMix)
+# Universal GPU Support: Turing (7.5) -> Ampere (8.0/8.6) -> Ada (8.9) -> Hopper (9.0) -> Blackwell (10.0/12.0)
 # ==============================================================================
-FROM nvidia/cuda:12.4.1-runtime-ubuntu22.04
+FROM nvidia/cuda:12.8.0-runtime-ubuntu22.04
 
 ENV DEBIAN_FRONTEND=noninteractive \
     PYTHONUNBUFFERED=1 \
     PIP_PREFER_BINARY=1 \
+    CUDA_MODULE_LOADING=LAZY \
+    TORCH_CUDA_ARCH_LIST="7.5;8.0;8.6;8.9;9.0;10.0;12.0+PTX" \
+    PYTORCH_CUDA_ALLOC_CONF="expandable_segments:True" \
     PREWARM_MODEL=false \
     LD_LIBRARY_PATH=/usr/local/cuda/lib64:${LD_LIBRARY_PATH} \
     CC=/usr/bin/gcc \
@@ -48,11 +52,11 @@ RUN update-alternatives --install /usr/bin/python3 python3 /usr/bin/python3.11 1
 
 WORKDIR /app
 
-# 2. Install PyTorch 2.7.0 with CUDA 12.4
+# 2. Install PyTorch with CUDA 12.8 (Universal architecture support including Blackwell sm_120)
 RUN python3 -m pip install --no-cache-dir \
-    --index-url https://download.pytorch.org/whl/cu124 \
+    --index-url https://download.pytorch.org/whl/cu128 \
     --extra-index-url https://pypi.org/simple \
-    torch==2.7.0 torchvision==0.22.0 torchaudio==2.7.0
+    torch torchvision torchaudio
 
 # 3. Clone ComfyUI repository & install dependencies
 RUN git clone --depth 1 https://github.com/comfyanonymous/ComfyUI.git /app/ComfyUI \

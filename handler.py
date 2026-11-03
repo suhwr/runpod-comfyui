@@ -32,6 +32,13 @@ if torch.cuda.is_available():
     torch.backends.cuda.matmul.allow_tf32 = True
     torch.backends.cudnn.allow_tf32 = True
     torch.backends.cudnn.benchmark = True
+    try:
+        _gpu_name = torch.cuda.get_device_name(0)
+        _gpu_cap = torch.cuda.get_device_capability(0)
+        _vram_gb = torch.cuda.get_device_properties(0).total_memory / (1024**3)
+        logging.info(f"🚀 Active GPU: {_gpu_name} (sm_{_gpu_cap[0]}{_gpu_cap[1]}, {_vram_gb:.2f} GB VRAM) — PyTorch {torch.__version__}")
+    except Exception:
+        pass
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(message)s")
 logger = logging.getLogger("comfyui-worker")

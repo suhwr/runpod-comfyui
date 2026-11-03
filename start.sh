@@ -136,17 +136,43 @@ else
 fi
 
 export PYTHONUNBUFFERED=1
+export CUDA_MODULE_LOADING=LAZY
+export TORCH_CUDA_ARCH_LIST="7.5;8.0;8.6;8.9;9.0;10.0;12.0+PTX"
+export PYTORCH_CUDA_ALLOC_CONF="expandable_segments:True"
 
 # ==============================================================================
-# 4. Launch headless ComfyUI daemon in the background
+# 4. Hardware Detection & ComfyUI Daemon Startup
 # ==============================================================================
-echo "🚀 Launching headless ComfyUI daemon on 127.0.0.1:8188 (--fast --highvram --disable-metadata --dont-print-server --preview-method none)..."
+GPU_INFO=$(python3 -c "
+import torch
+if torch.cuda.is_available():
+    name = torch.cuda.get_device_name(0)
+    cap = torch.cuda.get_device_capability(0)
+    vram_mb = int(torch.cuda.get_device_properties(0).total_memory / (1024 * 1024))
+    print(f'{name}|sm_{cap[0]}{cap[1]}|{vram_mb}')
+else:
+    print('CPU|none|0')
+" 2>/dev/null || echo "Unknown|none|0")
+
+IFS='|' read -r DETECTED_GPU DETECTED_ARCH DETECTED_VRAM <<< "$GPU_INFO"
+echo "🎯 GPU Detected: $DETECTED_GPU ($DETECTED_ARCH) with ${DETECTED_VRAM}MB VRAM"
+
+# Adaptive VRAM Management:
+# If VRAM >= 15GB (RTX 3090, 4090, L4, RTX 6000 Ada, Blackwell 96GB), enable --highvram for zero offload latency.
+# If VRAM < 15GB, use default smart offloading to protect against OOM on small cards.
+VRAM_OPTS="--highvram"
+if [ "$DETECTED_VRAM" -gt 0 ] && [ "$DETECTED_VRAM" -lt 15000 ]; then
+    echo "ℹ️ Card has <15GB VRAM. Using dynamic VRAM allocation..."
+    VRAM_OPTS=""
+fi
+
+echo "🚀 Launching headless ComfyUI daemon on 127.0.0.1:8188 (--fast $VRAM_OPTS --disable-metadata --dont-print-server --preview-method none)..."
 cd /app/ComfyUI
 python3 main.py \
     --listen 127.0.0.1 \
     --port 8188 \
     --fast \
-    --highvram \
+    $VRAM_OPTS \
     --disable-auto-launch \
     --disable-metadata \
     --dont-print-server \
