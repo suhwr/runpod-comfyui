@@ -365,7 +365,7 @@ def build_workflow_from_inputs(inputs: Dict[str, Any]) -> Tuple[Dict[str, Any], 
 
     seed = int(inputs.get("seed", -1))
     if seed <= 0:
-        seed = random.randint(1, 2**32 - 1)
+        seed = random.randint(1_000_000_000_000_000, 9_999_999_999_999_999)
 
     custom_negative = inputs.get("negative_prompt", "").strip()
 
