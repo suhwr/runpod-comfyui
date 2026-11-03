@@ -47,7 +47,7 @@ def run_micro_warmup(workflow_path: str, latent_node: str, sampler_node: str, cl
         ws_url = f"ws://{COMFY_HOST}/ws?clientId={client_id}"
 
         logger.info(f"🔥 Pre-warming [{name}] into memory/VRAM (1-step micro-inference)...")
-        ws = websocket.create_connection(ws_url, timeout=60)
+        ws = websocket.create_connection(ws_url, timeout=5)
 
         res = requests.post(
             f"http://{COMFY_HOST}/prompt",
@@ -60,9 +60,13 @@ def run_micro_warmup(workflow_path: str, latent_node: str, sampler_node: str, cl
             return False
 
         prompt_id = res.json().get("prompt_id")
+        start_w = time.time()
 
-        while True:
-            raw_msg = ws.recv()
+        while time.time() - start_w < 180:
+            try:
+                raw_msg = ws.recv()
+            except Exception:
+                continue
             if not isinstance(raw_msg, str):
                 continue
             msg = json.loads(raw_msg)

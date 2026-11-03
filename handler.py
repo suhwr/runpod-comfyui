@@ -9,6 +9,7 @@ import os
 import pathlib
 import random
 import shutil
+import socket
 import subprocess
 import sys
 import threading
@@ -452,8 +453,9 @@ def handler(event: Dict[str, Any]) -> Dict[str, Any]:
     client_id = f"client_{job_id}"
     ws_url = f"ws://{COMFY_HOST}/ws?clientId={client_id}"
 
+    execution_done = False
     try:
-        ws = websocket.create_connection(ws_url, timeout=30)
+        ws = websocket.create_connection(ws_url, timeout=5)
     except Exception as ws_err:
         return {"status": "FAILED", "error": f"Failed to connect to ComfyUI websocket: {ws_err}"}
 
@@ -461,7 +463,7 @@ def handler(event: Dict[str, Any]) -> Dict[str, Any]:
         # Submit prompt to ComfyUI
         logger.info(f"[{job_id}] 📤 Submitting {active_model} workflow to ComfyUI...")
         queue_payload = {"prompt": workflow, "client_id": client_id}
-        res = requests.post(f"http://{COMFY_HOST}/prompt", json=queue_payload, timeout=20)
+        res = requests.post(f"http://{COMFY_HOST}/prompt", json=queue_payload, timeout=30)
         if res.status_code != 200:
             return {"status": "FAILED", "error": f"ComfyUI prompt rejection ({res.status_code}): {res.text}"}
 
@@ -471,10 +473,27 @@ def handler(event: Dict[str, Any]) -> Dict[str, Any]:
 
         logger.info(f"[{job_id}] ⏳ Waiting for completion (prompt_id: {prompt_id})...")
 
-        # Wait for WebSocket events
-        execution_done = False
-        while True:
-            raw_msg = ws.recv()
+        # Wait for WebSocket events with resilient heartbeat loop
+        max_job_timeout = int(job_input.get("timeout", 600))  # Allow up to 10 minutes (for heavy cold-start model loads)
+        start_wait = time.time()
+        last_heartbeat = time.time()
+
+        while (time.time() - start_wait) < max_job_timeout:
+            try:
+                # 5s socket timeout prevents hanging while letting us check ComfyUI health
+                raw_msg = ws.recv()
+            except (websocket.WebSocketTimeoutException, socket.timeout):
+                if not check_comfy_health():
+                    return {"status": "FAILED", "error": "ComfyUI process crashed during execution"}
+                if time.time() - last_heartbeat >= 10:
+                    elapsed = int(time.time() - start_wait)
+                    logger.info(f"[{job_id}] ⏳ ComfyUI active ({elapsed}s elapsed, weights loading/sampling)...")
+                    last_heartbeat = time.time()
+                continue
+            except Exception as ws_read_err:
+                logger.error(f"[{job_id}] WebSocket read error: {ws_read_err}")
+                break
+
             if not isinstance(raw_msg, str):
                 continue
             msg = json.loads(raw_msg)
@@ -494,7 +513,7 @@ def handler(event: Dict[str, Any]) -> Dict[str, Any]:
                     }
 
         if not execution_done:
-            return {"status": "FAILED", "error": "Workflow did not finish execution properly"}
+            return {"status": "FAILED", "error": f"Workflow did not complete within {max_job_timeout}s timeout"}
 
         # Fetch output image filenames from history
         history_res = requests.get(f"http://{COMFY_HOST}/history/{prompt_id}", timeout=20)
@@ -575,6 +594,12 @@ def handler(event: Dict[str, Any]) -> Dict[str, Any]:
         logger.error(f"[{job_id}] ❌ Error: {exc}")
         return {"status": "FAILED", "error": f"Inference error: {str(exc)}"}
     finally:
+        if not execution_done:
+            try:
+                requests.post(f"http://{COMFY_HOST}/interrupt", timeout=5)
+                logger.info(f"[{job_id}] 🛑 Interrupted pending ComfyUI execution queue")
+            except Exception:
+                pass
         try:
             ws.close()
         except Exception:
