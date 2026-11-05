@@ -33,8 +33,8 @@ Production-grade, ultra-fast serverless worker powering SOTA anime generation wi
 | `height` | `integer` | `1024` | Height in pixels (recommended: `1024`, `1216`) |
 | `steps` | `integer` | `16` | Sampling steps (Flow Matching: 16 optimal) |
 | `cfg` | `float` | `2.1` | Guidance scale (optimal for Anima DiT: 2.0–2.4) |
-| `sampler` | `string` | `"euler"` | Sampler name (`euler`, `dpmpp_2m`, `er_sde`) |
-| `scheduler` | `string` | `"karras"` | Scheduler name (`karras`, `beta`, `simple`) |
+| `sampler` | `string` | `"er_sde"` | Sampler name (`er_sde`, `euler`, `dpmpp_2m`) |
+| `scheduler` | `string` | `"simple"` | Scheduler name (`simple`, `sgm_uniform`) |
 | `seed` | `integer` | `-1` | Random seed (`-1` for randomized generation) |
 | `workflow` | `object` | `null` | Optional raw ComfyUI API workflow JSON dict |
 

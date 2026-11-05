@@ -71,8 +71,8 @@
       "seed": 0,
       "steps": 16,
       "cfg": 2.1,
-      "sampler_name": "euler",
-      "scheduler": "karras",
+      "sampler_name": "er_sde",
+      "scheduler": "simple",
       "denoise": 1.0,
       "model": [
         "1",

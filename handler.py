@@ -407,8 +407,8 @@ def build_workflow_from_inputs(inputs: Dict[str, Any]) -> Tuple[Dict[str, Any], 
     steps = min(35, max(8, steps))
     cfg = float(inputs.get("cfg", 2.1))
 
-    sampler = inputs.get("sampler", "euler")
-    scheduler = inputs.get("scheduler", "karras")
+    sampler = inputs.get("sampler", "er_sde")
+    scheduler = inputs.get("scheduler", "simple")
 
     workflow["1"]["inputs"]["unet_name"] = selected_unet
     workflow["2"]["inputs"]["clip_name"] = inputs.get("clip_name", NOVA_CLIP_NAME)
