@@ -27,27 +27,40 @@ Production-grade, ultra-fast serverless worker powering SOTA anime generation wi
 | Parameter | Type | Default | Description |
 | :--- | :---: | :---: | :--- |
 | `prompt` | `string` | *(Required)* | Positive anime prompt tags |
-| `model` | `string` | `"nova"` | Model selector: `"nova"` (Default) or `"silvermoon"` |
+| `model` | `string` | `"nova"` | Model selector: `"nova"` (Default 2D Anime), `"silvermoon"` (Painterly), `"orange"` (2.5D) |
+| `turbo` | `boolean` | `false` | Enable Anima Turbo v1.1 (~2x faster, 10 steps, CFG 1.4, anti-slop tuning) |
+| `turbo_strength` | `float` | `1.0` | Turbo LoRA strength (0.0 to 1.0) |
+| `loras` | `array` | `[]` | Dynamic multiple LoRA chaining (`[{"name": "...", "strength": 0.8}]` or `["..."]`) |
 | `negative_prompt` | `string` | `""` | Optional negative prompt overrides |
 | `width` | `integer` | `768` | Width in pixels (recommended: `768`, `832`, `1024`) |
 | `height` | `integer` | `1024` | Height in pixels (recommended: `1024`, `1216`) |
-| `steps` | `integer` | `16` | Sampling steps (Flow Matching: 16 optimal) |
-| `cfg` | `float` | `2.1` | Guidance scale (optimal for Anima DiT: 2.0–2.4) |
-| `sampler` | `string` | `"er_sde"` | Sampler name (`er_sde`, `euler`, `dpmpp_2m`) |
-| `scheduler` | `string` | `"simple"` | Scheduler name (`simple`, `sgm_uniform`) |
+| `steps` | `integer` | `10` (Turbo) / `16` | Sampling steps (Flow Matching: 10–16 optimal) |
+| `cfg` | `float` | `1.4` (Turbo) / `2.1` | Guidance scale (optimal for Anima DiT: 1.2–2.3; keep $\le 2.4$ to prevent AI slop) |
+| `sampler` | `string` | `"euler"` (Turbo) / `"er_sde"` | Sampler name (`euler`, `er_sde`, `euler_ancestral`, `dpmpp_2m`) |
+| `scheduler` | `string` | `"simple"` | Scheduler name (`simple`, `normal`, `karras`, `sgm_uniform`) |
 | `seed` | `integer` | `-1` | Random seed (`-1` for randomized generation) |
 | `workflow` | `object` | `null` | Optional raw ComfyUI API workflow JSON dict |
 
-### Example Request:
+### Example Request with Multiple LoRAs:
 
 ```json
 {
   "input": {
-    "prompt": "1girl, silver hair, cat ears, school uniform, cherry blossoms",
-    "model": "nova",
+    "prompt": "1girl, silver hair, fighting pose, dynamic action, retro 90s aesthetic",
+    "turbo": true,
+    "loras": [
+      {
+        "name": "dynamic_pose.safetensors",
+        "strength": 0.8
+      },
+      {
+        "name": "retro_90s.safetensors",
+        "strength_model": 0.65,
+        "strength_clip": 0.5
+      }
+    ],
     "width": 768,
-    "height": 1024,
-    "seed": 1234567
+    "height": 1024
   }
 }
 ```
