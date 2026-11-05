@@ -63,42 +63,68 @@ NOVA_VAE_NAME = os.environ.get("NOVA_VAE_NAME", "qwen_image_vae.safetensors")
 TURBO_LORA_NAME = os.environ.get("TURBO_LORA_NAME", "Anima_Turbo_v1.1.safetensors")
 
 
-def resolve_lora_name(requested_name: str, lora_dir: str = "") -> str:
-    """Resolve user-requested LoRA name to exact filename on disk."""
-    if not lora_dir:
-        lora_dir = os.path.join(COMFY_DIR, "models", "loras")
+def get_comfy_available_loras() -> List[str]:
+    """Fetch exact list of LoRAs recognized by ComfyUI's LoraLoader."""
+    try:
+        r = requests.get(f"http://{COMFY_HOST}/object_info/LoraLoader", timeout=2)
+        if r.status_code == 200:
+            lora_input = r.json().get("LoraLoader", {}).get("input", {}).get("required", {}).get("lora_name", [])
+            if lora_input and isinstance(lora_input[0], list) and lora_input[0]:
+                return lora_input[0]
+    except Exception as exc:
+        logger.debug(f"Could not query /object_info/LoraLoader ({exc}), falling back to disk...")
 
+    lora_dir = os.path.join(COMFY_DIR, "models", "loras")
+    if os.path.isdir(lora_dir):
+        try:
+            return os.listdir(lora_dir)
+        except Exception:
+            pass
+    return []
+
+
+def resolve_lora_name(requested_name: str, available_loras: Optional[List[str]] = None) -> Optional[str]:
+    """
+    Resolve user-requested LoRA name to exact filename recognized by ComfyUI.
+    Returns None if the requested LoRA is not present in ComfyUI or on disk.
+    """
     req_clean = str(requested_name).strip()
     if not req_clean:
-        return ""
+        return None
+
+    if available_loras is None:
+        available_loras = get_comfy_available_loras()
+
+    if not available_loras:
+        return req_clean
 
     candidates = [req_clean]
     if not req_clean.endswith(".safetensors") and not req_clean.endswith(".pt"):
         candidates.append(f"{req_clean}.safetensors")
+        candidates.append(f"{req_clean}.pt")
 
-    if os.path.isdir(lora_dir):
-        try:
-            available_files = os.listdir(lora_dir)
-            # 1. Exact match
-            for cand in candidates:
-                if cand in available_files:
-                    return cand
-            # 2. Case-insensitive exact match
-            for f in available_files:
-                for cand in candidates:
-                    if f.lower() == cand.lower():
-                        return f
-            # 3. Substring match
-            for cand in candidates:
-                cand_stem = cand.replace(".safetensors", "").replace(".pt", "").lower()
-                for f in available_files:
-                    f_stem = f.replace(".safetensors", "").replace(".pt", "").lower()
-                    if cand_stem in f_stem or f_stem in cand_stem:
-                        return f
-        except Exception:
-            pass
+    # 1. Exact match
+    for cand in candidates:
+        if cand in available_loras:
+            return cand
 
-    return candidates[-1]
+    # 2. Case-insensitive exact match
+    for f in available_loras:
+        for cand in candidates:
+            if f.lower() == cand.lower():
+                return f
+
+    # 3. Substring match
+    for cand in candidates:
+        cand_stem = cand.replace(".safetensors", "").replace(".pt", "").lower()
+        if not cand_stem:
+            continue
+        for f in available_loras:
+            f_stem = f.replace(".safetensors", "").replace(".pt", "").lower()
+            if cand_stem in f_stem or f_stem in cand_stem:
+                return f
+
+    return None
 
 # Default quality tags (Tuned specifically for 2D Anime & Anti-Slop aesthetics)
 NOVA_QUALITY_BOOSTER = (
@@ -462,7 +488,9 @@ def build_workflow_from_inputs(inputs: Dict[str, Any]) -> Tuple[Dict[str, Any], 
                 elif isinstance(item, dict) and (item.get("name") or item.get("lora") or item.get("file")):
                     lora_list.append(item)
 
-    lora_dir = os.path.join(COMFY_DIR, "models", "loras")
+    available_comfy_loras = get_comfy_available_loras()
+    logger.info(f"🔎 Available LoRAs recognized by ComfyUI: {available_comfy_loras}")
+
     current_model = ["1", 0]
     current_clip = ["2", 0]
     applied_loras = []
@@ -475,12 +503,11 @@ def build_workflow_from_inputs(inputs: Dict[str, Any]) -> Tuple[Dict[str, Any], 
         if not l_name:
             continue
 
-        resolved_name = resolve_lora_name(l_name, lora_dir)
+        resolved_name = resolve_lora_name(l_name, available_comfy_loras)
 
-        # Failsafe: check if LoRA exists on disk to prevent ComfyUI execution failure
-        lora_full_path = os.path.join(lora_dir, resolved_name)
-        if os.path.isdir(lora_dir) and not os.path.isfile(lora_full_path):
-            logger.warning(f"⚠️ LoRA '{l_name}' not found on disk at {lora_full_path}. Skipped to prevent render crash.")
+        # Failsafe: if not recognized or not available in ComfyUI, skip to prevent 400 prompt rejection
+        if not resolved_name or (available_comfy_loras and resolved_name not in available_comfy_loras):
+            logger.warning(f"⚠️ LoRA '{l_name}' not available in ComfyUI (Available: {available_comfy_loras}). Skipped to prevent render crash.")
             missing_loras.append(l_name)
             continue
 
