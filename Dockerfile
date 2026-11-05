@@ -71,6 +71,7 @@ RUN mkdir -p /app/ComfyUI/models/checkpoints \
              /app/ComfyUI/models/diffusion_models \
              /app/ComfyUI/models/text_encoders \
              /app/ComfyUI/models/vae \
+             /app/ComfyUI/models/loras \
              /app/ComfyUI/output
 
 # 6. Bake Pure-DiT Anima models + Qwen Text Encoder & VAE directly into the Docker image
@@ -92,6 +93,13 @@ RUN aria2c -c -x 8 -s 8 -k 1M --file-allocation=none \
  && aria2c -c -x 8 -s 8 -k 1M --file-allocation=none \
     --dir=/app/ComfyUI/models/vae --out=qwen_image_vae.safetensors \
     https://huggingface.co/circlestone-labs/Anima/resolve/main/split_files/vae/qwen_image_vae.safetensors
+
+# 6d. Bake Anima Turbo v1.1 LoRA (~149 MB) directly into the image (0ms cold start)
+RUN aria2c -c -x 8 -s 8 -k 1M --file-allocation=none \
+    --dir=/app/ComfyUI/models/loras --out=Anima_Turbo_v1.1.safetensors \
+    https://huggingface.co/watanbe4112/Anima_Turbo_LoRA/resolve/main/anima-turbo-lora-v0.2.safetensors \
+ && ln -sf Anima_Turbo_v1.1.safetensors /app/ComfyUI/models/loras/anima-turbo-lora-v0.2.safetensors \
+ && ln -sf Anima_Turbo_v1.1.safetensors /app/ComfyUI/models/loras/anima_turbo.safetensors
 
 # 7. Copy handler, workflows, and startup script
 COPY workflow_anima.json /app/workflow_anima.json

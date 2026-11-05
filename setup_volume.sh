@@ -81,20 +81,20 @@ else
     echo "✅ Qwen VAE downloaded!"
 fi
 
-# ─── 5. Anima Turbo LoRA (~149MB) [Step Distillation & Anti-Slop 2D Lineart] ──
-TURBO_LORA_NAME="anima-turbo-lora-v0.2.safetensors"
+# ─── 5. Anima Turbo v1.1 LoRA (~149MB) [Step Distillation & Anti-Slop 2D Lineart] ──
+TURBO_LORA_NAME="Anima_Turbo_v1.1.safetensors"
 TURBO_LORA_URL="https://huggingface.co/watanbe4112/Anima_Turbo_LoRA/resolve/main/anima-turbo-lora-v0.2.safetensors"
 
 if [ -f "$LORA_DIR/$TURBO_LORA_NAME" ]; then
     echo "✅ Anima Turbo LoRA already exists — skipping download."
 else
-    echo "⬇️ Downloading Anima Turbo LoRA (~149MB)..."
+    echo "⬇️ Downloading Anima Turbo v1.1 LoRA (~149MB)..."
     aria2c -c -x 8 -s 8 -k 1M --file-allocation=none --dir="$LORA_DIR" --out="$TURBO_LORA_NAME" "$TURBO_LORA_URL"
-    echo "✅ Anima Turbo LoRA downloaded!"
+    echo "✅ Anima Turbo v1.1 LoRA downloaded!"
 fi
 
 # Create convenient aliases for easy prompt/request matching
-ln -sf "$TURBO_LORA_NAME" "$LORA_DIR/Anima_Turbo_v1.1.safetensors" 2>/dev/null || true
+ln -sf "$TURBO_LORA_NAME" "$LORA_DIR/anima-turbo-lora-v0.2.safetensors" 2>/dev/null || true
 ln -sf "$TURBO_LORA_NAME" "$LORA_DIR/anima_turbo.safetensors" 2>/dev/null || true
 
 echo ""

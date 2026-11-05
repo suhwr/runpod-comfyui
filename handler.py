@@ -60,7 +60,7 @@ ORANGE_UNET_NAME = os.environ.get("ORANGE_UNET_NAME", "novaOrangeAM_v4029B.safet
 
 NOVA_CLIP_NAME = os.environ.get("NOVA_CLIP_NAME", "qwen_3_06b_base.safetensors")
 NOVA_VAE_NAME = os.environ.get("NOVA_VAE_NAME", "qwen_image_vae.safetensors")
-TURBO_LORA_NAME = os.environ.get("TURBO_LORA_NAME", "anima-turbo-lora-v0.2.safetensors")
+TURBO_LORA_NAME = os.environ.get("TURBO_LORA_NAME", "Anima_Turbo_v1.1.safetensors")
 
 
 def resolve_lora_name(requested_name: str, lora_dir: str = "") -> str:
@@ -100,23 +100,23 @@ def resolve_lora_name(requested_name: str, lora_dir: str = "") -> str:
 
     return candidates[-1]
 
-# Default quality tags
+# Default quality tags (Tuned specifically for 2D Anime & Anti-Slop aesthetics)
 NOVA_QUALITY_BOOSTER = (
-    "masterpiece, best quality, score_9, score_8, score_7, very aesthetic, newest, absurdres, highres, highly detailed, "
-    "delicate facial features, beautiful detailed eyes, detailed hair strands, "
+    "score_9, score_8, score_7, very aesthetic, newest, absurdres, highres, "
+    "clean lineart, cel shading, delicate facial features, beautiful expressive eyes, detailed hair strands, "
     "cinematic lighting, balanced contrast, fine shadows, rich depth, vibrant colors, detailed scenery background, "
     "scenic environment, atmospheric depth, rich environmental details"
 )
 
 ORANGE_QUALITY_BOOSTER = (
-    "masterpiece, best quality, score_9, score_8, very aesthetic, newest, absurdres, highres, highly detailed, "
+    "score_9, score_8, very aesthetic, newest, absurdres, highres, "
     "semi-realistic anime, expressive facial features, beautiful realistic eyes, soft skin texture, "
     "detailed scenery background, scenic environment, atmospheric depth, warm ambient lighting, "
     "rich shadows, balanced contrast, cinematic composition, depth of field"
 )
 
 SILVERMOON_QUALITY_BOOSTER = (
-    "masterpiece, best quality, score_9, score_8, very aesthetic, newest, absurdres, highres, highly detailed, "
+    "score_9, score_8, very aesthetic, newest, absurdres, highres, "
     "perfect anatomy, accurate hands, finely detailed fingers, beautiful expressive face, intricate eyes, delicate lineart, "
     "detailed scenery background, atmospheric ambient lighting, rich environment, harmonious colors, detailed illustration"
 )
@@ -127,7 +127,8 @@ NEGATIVE_DEFAULT = (
     "bad anatomy, bad hands, missing fingers, extra digits, extra fingers, fewer digits, fused fingers, "
     "elongated fingers, long fingers, malformed fingers, mutated hands, poorly drawn hands, disfigured, "
     "bad proportions, gross proportions, malformed limbs, extra limbs, missing limbs, floating limbs, "
-    "flat colors, washed out, dull lighting, oversaturated, amateur, overexposed, blown out highlights, glaring light, glowing glare"
+    "flat colors, washed out, dull lighting, oversaturated, amateur, overexposed, blown out highlights, glaring light, glowing glare, "
+    "greasy skin, shiny skin, plastic skin, 3d, realistic, photorealistic, oily skin, doll-like face, mannequin"
 )
 
 NEGATIVE_BG_BLOCK = (
