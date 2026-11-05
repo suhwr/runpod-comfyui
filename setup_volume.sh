@@ -14,6 +14,7 @@ MODELS_DIR="$VOLUME_ROOT/models"
 DIFFUSION_DIR="$MODELS_DIR/diffusion_models"
 TEXT_ENCODER_DIR="$MODELS_DIR/text_encoders"
 VAE_DIR="$MODELS_DIR/vae"
+LORA_DIR="$MODELS_DIR/loras"
 
 echo "================================================================"
 echo "  Pure-DiT Anima Model Network Volume Setup Script"
@@ -25,7 +26,7 @@ if [ ! -d "$VOLUME_ROOT" ]; then
     exit 1
 fi
 
-mkdir -p "$DIFFUSION_DIR" "$TEXT_ENCODER_DIR" "$VAE_DIR"
+mkdir -p "$DIFFUSION_DIR" "$TEXT_ENCODER_DIR" "$VAE_DIR" "$LORA_DIR"
 
 if ! command -v aria2c >/dev/null 2>&1; then
     echo "📦 Installing aria2..."
@@ -80,7 +81,23 @@ else
     echo "✅ Qwen VAE downloaded!"
 fi
 
+# ─── 5. Anima Turbo LoRA (~149MB) [Step Distillation & Anti-Slop 2D Lineart] ──
+TURBO_LORA_NAME="anima-turbo-lora-v0.2.safetensors"
+TURBO_LORA_URL="https://huggingface.co/watanbe4112/Anima_Turbo_LoRA/resolve/main/anima-turbo-lora-v0.2.safetensors"
+
+if [ -f "$LORA_DIR/$TURBO_LORA_NAME" ]; then
+    echo "✅ Anima Turbo LoRA already exists — skipping download."
+else
+    echo "⬇️ Downloading Anima Turbo LoRA (~149MB)..."
+    aria2c -c -x 8 -s 8 -k 1M --file-allocation=none --dir="$LORA_DIR" --out="$TURBO_LORA_NAME" "$TURBO_LORA_URL"
+    echo "✅ Anima Turbo LoRA downloaded!"
+fi
+
+# Create convenient aliases for easy prompt/request matching
+ln -sf "$TURBO_LORA_NAME" "$LORA_DIR/Anima_Turbo_v1.1.safetensors" 2>/dev/null || true
+ln -sf "$TURBO_LORA_NAME" "$LORA_DIR/anima_turbo.safetensors" 2>/dev/null || true
+
 echo ""
 echo "================================================================"
-echo "  ✅ All Pure-DiT Trio Model components populated in Network Volume!"
+echo "  ✅ All Pure-DiT Trio Model & LoRA components populated in Network Volume!"
 echo "================================================================"

@@ -60,6 +60,45 @@ ORANGE_UNET_NAME = os.environ.get("ORANGE_UNET_NAME", "novaOrangeAM_v4029B.safet
 
 NOVA_CLIP_NAME = os.environ.get("NOVA_CLIP_NAME", "qwen_3_06b_base.safetensors")
 NOVA_VAE_NAME = os.environ.get("NOVA_VAE_NAME", "qwen_image_vae.safetensors")
+TURBO_LORA_NAME = os.environ.get("TURBO_LORA_NAME", "anima-turbo-lora-v0.2.safetensors")
+
+
+def resolve_lora_name(requested_name: str, lora_dir: str = "") -> str:
+    """Resolve user-requested LoRA name to exact filename on disk."""
+    if not lora_dir:
+        lora_dir = os.path.join(COMFY_DIR, "models", "loras")
+
+    req_clean = str(requested_name).strip()
+    if not req_clean:
+        return ""
+
+    candidates = [req_clean]
+    if not req_clean.endswith(".safetensors") and not req_clean.endswith(".pt"):
+        candidates.append(f"{req_clean}.safetensors")
+
+    if os.path.isdir(lora_dir):
+        try:
+            available_files = os.listdir(lora_dir)
+            # 1. Exact match
+            for cand in candidates:
+                if cand in available_files:
+                    return cand
+            # 2. Case-insensitive exact match
+            for f in available_files:
+                for cand in candidates:
+                    if f.lower() == cand.lower():
+                        return f
+            # 3. Substring match
+            for cand in candidates:
+                cand_stem = cand.replace(".safetensors", "").replace(".pt", "").lower()
+                for f in available_files:
+                    f_stem = f.replace(".safetensors", "").replace(".pt", "").lower()
+                    if cand_stem in f_stem or f_stem in cand_stem:
+                        return f
+        except Exception:
+            pass
+
+    return candidates[-1]
 
 # Default quality tags
 NOVA_QUALITY_BOOSTER = (
@@ -401,20 +440,92 @@ def build_workflow_from_inputs(inputs: Dict[str, Any]) -> Tuple[Dict[str, Any], 
     else:
         negative_text = base_negative
 
+    # ─── Dynamic Multiple LoRA Chaining ────────────────────────────────────────
+    raw_loras = inputs.get("loras") or inputs.get("lora")
+    use_turbo = bool(inputs.get("turbo", False) or inputs.get("anima_turbo", False))
+
+    lora_list = []
+    if use_turbo:
+        lora_list.append({
+            "name": TURBO_LORA_NAME,
+            "strength": float(inputs.get("turbo_strength", 1.0)),
+        })
+
+    if raw_loras:
+        if isinstance(raw_loras, (str, dict)):
+            raw_loras = [raw_loras]
+        if isinstance(raw_loras, list):
+            for item in raw_loras:
+                if isinstance(item, str) and item.strip():
+                    lora_list.append({"name": item.strip(), "strength": 1.0})
+                elif isinstance(item, dict) and (item.get("name") or item.get("lora") or item.get("file")):
+                    lora_list.append(item)
+
+    lora_dir = os.path.join(COMFY_DIR, "models", "loras")
+    current_model = ["1", 0]
+    current_clip = ["2", 0]
+    applied_loras = []
+    has_turbo_active = False
+
+    node_id_counter = 100
+    for lora_entry in lora_list:
+        l_name = lora_entry.get("name") or lora_entry.get("lora") or lora_entry.get("file") or ""
+        if not l_name:
+            continue
+
+        resolved_name = resolve_lora_name(l_name, lora_dir)
+        base_strength = float(lora_entry.get("strength", 1.0))
+        strength_model = float(lora_entry.get("strength_model", base_strength))
+        strength_clip = float(lora_entry.get("strength_clip", base_strength))
+
+        if "turbo" in resolved_name.lower():
+            has_turbo_active = True
+
+        node_id_counter += 1
+        node_id = str(node_id_counter)
+
+        workflow[node_id] = {
+            "inputs": {
+                "lora_name": resolved_name,
+                "strength_model": strength_model,
+                "strength_clip": strength_clip,
+                "model": current_model,
+                "clip": current_clip,
+            },
+            "class_type": "LoraLoader",
+            "_meta": {
+                "title": f"Load LoRA ({resolved_name})"
+            }
+        }
+        current_model = [node_id, 0]
+        current_clip = [node_id, 1]
+        applied_loras.append({
+            "node_id": node_id,
+            "lora_name": resolved_name,
+            "strength_model": strength_model,
+            "strength_clip": strength_clip,
+        })
+
+    default_steps = 10 if has_turbo_active else 16
+    default_cfg = 1.4 if has_turbo_active else 2.1
+    default_sampler = "euler" if has_turbo_active else "er_sde"
+
     width = int(inputs.get("width", 768))
     height = int(inputs.get("height", 1024))
-    steps = int(inputs.get("steps", 16))
-    steps = min(35, max(8, steps))
-    cfg = float(inputs.get("cfg", 2.1))
+    steps = int(inputs.get("steps", default_steps))
+    steps = min(35, max(4, steps))
+    cfg = float(inputs.get("cfg", default_cfg))
 
-    sampler = inputs.get("sampler", "er_sde")
+    sampler = inputs.get("sampler", default_sampler)
     scheduler = inputs.get("scheduler", "simple")
 
     workflow["1"]["inputs"]["unet_name"] = selected_unet
     workflow["2"]["inputs"]["clip_name"] = inputs.get("clip_name", NOVA_CLIP_NAME)
     workflow["3"]["inputs"]["vae_name"] = inputs.get("vae_name", NOVA_VAE_NAME)
     workflow["4"]["inputs"]["text"] = positive_text
+    workflow["4"]["inputs"]["clip"] = current_clip
     workflow["5"]["inputs"]["text"] = negative_text
+    workflow["5"]["inputs"]["clip"] = current_clip
     workflow["6"]["inputs"]["width"] = width
     workflow["6"]["inputs"]["height"] = height
     workflow["7"]["inputs"]["seed"] = seed
@@ -422,8 +533,9 @@ def build_workflow_from_inputs(inputs: Dict[str, Any]) -> Tuple[Dict[str, Any], 
     workflow["7"]["inputs"]["cfg"] = cfg
     workflow["7"]["inputs"]["sampler_name"] = sampler
     workflow["7"]["inputs"]["scheduler"] = scheduler
+    workflow["7"]["inputs"]["model"] = current_model
 
-    return workflow, seed, active_model_name
+    return workflow, seed, active_model_name, applied_loras
 
 
 # ============================================================================ #
@@ -439,6 +551,7 @@ def handler(event: Dict[str, Any]) -> Dict[str, Any]:
         if not ensure_comfyui_ready(timeout_seconds=20):
             return {"status": "FAILED", "error": f"ComfyUI server at {COMFY_HOST} is not healthy"}
 
+    applied_loras = []
     # Determine workflow: custom raw workflow or built from inputs
     if "workflow" in job_input and isinstance(job_input["workflow"], dict):
         workflow = job_input["workflow"]
@@ -446,7 +559,7 @@ def handler(event: Dict[str, Any]) -> Dict[str, Any]:
         active_model = "custom_workflow"
     else:
         try:
-            workflow, seed, active_model = build_workflow_from_inputs(job_input)
+            workflow, seed, active_model, applied_loras = build_workflow_from_inputs(job_input)
         except Exception as err:
             return {"status": "FAILED", "error": str(err)}
 
@@ -461,6 +574,9 @@ def handler(event: Dict[str, Any]) -> Dict[str, Any]:
 
     try:
         # Submit prompt to ComfyUI
+        if applied_loras:
+            lora_summary = ", ".join([f"{l['lora_name']} (s={l['strength_model']:.2f})" for l in applied_loras])
+            logger.info(f"[{job_id}] 🎨 Chained {len(applied_loras)} LoRA(s): {lora_summary}")
         logger.info(f"[{job_id}] 📤 Submitting {active_model} workflow to ComfyUI...")
         queue_payload = {"prompt": workflow, "client_id": client_id}
         res = requests.post(f"http://{COMFY_HOST}/prompt", json=queue_payload, timeout=30)
@@ -587,6 +703,7 @@ def handler(event: Dict[str, Any]) -> Dict[str, Any]:
             "model_used": active_model,
             "execution_time_seconds": round(total_elapsed, 2),
             "seed": seed,
+            "loras_applied": [l["lora_name"] for l in applied_loras],
             "images": uploaded_results,
         }
 

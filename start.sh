@@ -14,7 +14,8 @@ DIFFUSION_DIR="/app/ComfyUI/models/diffusion_models"
 TEXT_ENCODER_DIR="/app/ComfyUI/models/text_encoders"
 VAE_DIR="/app/ComfyUI/models/vae"
 CHECKPOINT_DIR="/app/ComfyUI/models/checkpoints"
-mkdir -p "$DIFFUSION_DIR" "$TEXT_ENCODER_DIR" "$VAE_DIR" "$CHECKPOINT_DIR"
+LORA_DIR="/app/ComfyUI/models/loras"
+mkdir -p "$DIFFUSION_DIR" "$TEXT_ENCODER_DIR" "$VAE_DIR" "$CHECKPOINT_DIR" "$LORA_DIR"
 
 # ─── Pure DiT Anime Models Config ─────────────────────────────────────────────
 # Model 1: Nova Anime AM v6.0 (2.9B) [Default Anime 2D Flagship]
@@ -82,6 +83,16 @@ for VOL in "/runpod-volume" "/workspace" "/volume"; do
             break
         fi
     done
+
+    # Auto-symlink all LoRAs from volume
+    if [ -d "$VOL/models/loras" ]; then
+        echo "⚡ Symlinking LoRA models from $VOL/models/loras -> $LORA_DIR"
+        for FPATH in "$VOL/models/loras"/*.safetensors "$VOL/models/loras"/*.pt; do
+            [ -f "$FPATH" ] || continue
+            LNAME="$(basename "$FPATH")"
+            ln -sf "$FPATH" "$LORA_DIR/$LNAME"
+        done
+    fi
 done
 
 # ==============================================================================
@@ -133,6 +144,28 @@ else
         curl -L -# --retry 3 --connect-timeout 30 -o "$VAE_DIR/$NOVA_VAE_NAME" "$NOVA_VAE_URL"
     fi
     echo "✅ Qwen VAE downloaded successfully!"
+fi
+
+# ==============================================================================
+# 3. Check & Download Anima Turbo LoRA (Default Anti-Slop & Acceleration LoRA)
+# ==============================================================================
+TURBO_LORA_NAME="anima-turbo-lora-v0.2.safetensors"
+TURBO_LORA_URL="https://huggingface.co/watanbe4112/Anima_Turbo_LoRA/resolve/main/anima-turbo-lora-v0.2.safetensors"
+
+if [ -f "$LORA_DIR/$TURBO_LORA_NAME" ] || [ -f "$LORA_DIR/Anima_Turbo_v1.1.safetensors" ]; then
+    echo "⚡ Anima Turbo LoRA is already available in $LORA_DIR"
+else
+    echo "⬇️ Downloading default Anima Turbo LoRA (~149MB)..."
+    if command -v aria2c >/dev/null 2>&1; then
+        aria2c -c -x 8 -s 8 -k 1M --file-allocation=none --dir="$LORA_DIR" --out="$TURBO_LORA_NAME" "$TURBO_LORA_URL" || true
+    else
+        curl -L -s --retry 3 -o "$LORA_DIR/$TURBO_LORA_NAME" "$TURBO_LORA_URL" || true
+    fi
+    if [ -f "$LORA_DIR/$TURBO_LORA_NAME" ]; then
+        ln -sf "$TURBO_LORA_NAME" "$LORA_DIR/Anima_Turbo_v1.1.safetensors" 2>/dev/null || true
+        ln -sf "$TURBO_LORA_NAME" "$LORA_DIR/anima_turbo.safetensors" 2>/dev/null || true
+        echo "✅ Anima Turbo LoRA downloaded and ready!"
+    fi
 fi
 
 export PYTHONUNBUFFERED=1
