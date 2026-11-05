@@ -466,6 +466,7 @@ def build_workflow_from_inputs(inputs: Dict[str, Any]) -> Tuple[Dict[str, Any], 
     current_model = ["1", 0]
     current_clip = ["2", 0]
     applied_loras = []
+    missing_loras = []
     has_turbo_active = False
 
     node_id_counter = 100
@@ -475,6 +476,14 @@ def build_workflow_from_inputs(inputs: Dict[str, Any]) -> Tuple[Dict[str, Any], 
             continue
 
         resolved_name = resolve_lora_name(l_name, lora_dir)
+
+        # Failsafe: check if LoRA exists on disk to prevent ComfyUI execution failure
+        lora_full_path = os.path.join(lora_dir, resolved_name)
+        if os.path.isdir(lora_dir) and not os.path.isfile(lora_full_path):
+            logger.warning(f"⚠️ LoRA '{l_name}' not found on disk at {lora_full_path}. Skipped to prevent render crash.")
+            missing_loras.append(l_name)
+            continue
+
         base_strength = float(lora_entry.get("strength", 1.0))
         strength_model = float(lora_entry.get("strength_model", base_strength))
         strength_clip = float(lora_entry.get("strength_clip", base_strength))
@@ -536,7 +545,7 @@ def build_workflow_from_inputs(inputs: Dict[str, Any]) -> Tuple[Dict[str, Any], 
     workflow["7"]["inputs"]["scheduler"] = scheduler
     workflow["7"]["inputs"]["model"] = current_model
 
-    return workflow, seed, active_model_name, applied_loras
+    return workflow, seed, active_model_name, applied_loras, missing_loras
 
 
 # ============================================================================ #
@@ -553,6 +562,7 @@ def handler(event: Dict[str, Any]) -> Dict[str, Any]:
             return {"status": "FAILED", "error": f"ComfyUI server at {COMFY_HOST} is not healthy"}
 
     applied_loras = []
+    missing_loras = []
     # Determine workflow: custom raw workflow or built from inputs
     if "workflow" in job_input and isinstance(job_input["workflow"], dict):
         workflow = job_input["workflow"]
@@ -560,7 +570,7 @@ def handler(event: Dict[str, Any]) -> Dict[str, Any]:
         active_model = "custom_workflow"
     else:
         try:
-            workflow, seed, active_model, applied_loras = build_workflow_from_inputs(job_input)
+            workflow, seed, active_model, applied_loras, missing_loras = build_workflow_from_inputs(job_input)
         except Exception as err:
             return {"status": "FAILED", "error": str(err)}
 
@@ -699,7 +709,7 @@ def handler(event: Dict[str, Any]) -> Dict[str, Any]:
                         })
 
         total_elapsed = time.time() - start_time
-        return {
+        res_payload = {
             "status": "COMPLETED",
             "model_used": active_model,
             "execution_time_seconds": round(total_elapsed, 2),
@@ -707,6 +717,9 @@ def handler(event: Dict[str, Any]) -> Dict[str, Any]:
             "loras_applied": [l["lora_name"] for l in applied_loras],
             "images": uploaded_results,
         }
+        if missing_loras:
+            res_payload["loras_missing"] = missing_loras
+        return res_payload
 
     except Exception as exc:
         logger.error(f"[{job_id}] ❌ Error: {exc}")
