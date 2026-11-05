@@ -2,7 +2,7 @@
   "$schema_description": "RunPod ComfyUI Worker Request Templates & LoRA Specification",
   "examples": {
     "1_recommended_turbo_anti_slop": {
-      "description": "Rekomendasi terbaik: Cepat (~1.5-2.5s), hemat credit RunPod, hasil 2D anime tajam & anti AI slop (otomatis inject Anima Turbo v1.1, 10 steps, CFG 1.4, sampler euler).",
+      "description": "Rekomendasi terbaik (Langsung jalan sekarang tanpa upload file tambahan): Cepat (~1.5-2.5s), hemat credit RunPod, hasil 2D anime tajam & anti AI slop (otomatis inject Anima Turbo v1.1, 10 steps, CFG 1.4, sampler euler).",
       "payload": {
         "input": {
           "prompt": "1girl, silver hair, glowing blue eyes, white hoodie, headphone, standing in cyberpunk tokyo street, neon reflection",
@@ -11,8 +11,28 @@
       }
     },
 
-    "2_multiple_loras_chaining": {
-      "description": "Multiple LoRA berantai: Menggabungkan Anima Turbo dengan LoRA pose dan LoRA style/art. Bisa mengatur strength UNet (model) dan CLIP (prompt) secara terpisah.",
+    "2_active_lora_explicit_example": {
+      "description": "Contoh LoRA yang SUDAH TERSEDIA di container saat ini: Menggunakan Anima_Turbo_v1.1.safetensors secara eksplisit.",
+      "payload": {
+        "input": {
+          "prompt": "1girl, silver hair, glowing blue eyes, white hoodie, headphone, standing in cyberpunk tokyo street, neon reflection",
+          "loras": [
+            {
+              "name": "Anima_Turbo_v1.1.safetensors",
+              "strength": 1.0,
+              "strength_model": 1.0,
+              "strength_clip": 1.0
+            }
+          ],
+          "steps": 10,
+          "cfg": 1.4,
+          "sampler": "euler"
+        }
+      }
+    },
+
+    "3_multiple_loras_chaining_custom": {
+      "description": "Multiple LoRA berantai (Catatan: File selain Anima Turbo seperti pose/style harus di-upload dulu ke Network Volume di /models/loras/): Menggabungkan Anima Turbo dengan LoRA pose dan style. Bisa mengatur strength UNet (model) dan CLIP (prompt) secara terpisah.",
       "payload": {
         "input": {
           "prompt": "1girl, solo, fighting stance, dynamic action pose, retro 90s aesthetic, sharp lineart, katana, floating sakura petals",
