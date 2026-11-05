@@ -31,7 +31,7 @@
   },
   "4": {
     "inputs": {
-      "text": "1girl, silver hair, cat ears, school uniform, masterpiece, best quality, score_9, score_8, score_7, very aesthetic, newest, absurdres, highres, highly detailed, delicate facial features, beautiful detailed eyes, detailed hair strands, cinematic lighting, soft volumetric illumination, vibrant colors, detailed scenery background, atmospheric depth",
+      "text": "1girl, silver hair, cat ears, school uniform, masterpiece, best quality, score_9, score_8, score_7, very aesthetic, newest, absurdres, highres, highly detailed, delicate facial features, beautiful detailed eyes, detailed hair strands, cinematic lighting, balanced contrast, fine shadows, rich depth, vibrant colors, detailed scenery background, atmospheric depth",
       "clip": [
         "2",
         0
@@ -44,7 +44,7 @@
   },
   "5": {
     "inputs": {
-      "text": "worst quality, low quality, early, old, score_1, score_2, score_3, score_4, score_5, score_6, monochrome, jpeg artifacts, lowres, blurry, watermark, signature, username, error, bad anatomy, bad hands, missing fingers, extra digits, extra fingers, fewer digits, fused fingers, elongated fingers, long fingers, malformed fingers, mutated hands, poorly drawn hands, disfigured, bad proportions, gross proportions, malformed limbs, extra limbs, missing limbs, floating limbs, flat colors, washed out, dull lighting, oversaturated, amateur, bad background, poorly drawn background, simple background, white background, plain background, blank background, solid background, empty background, flat background, grey background, gray background, monochrome background, minimalist background, void background, lacking background, unfinished background",
+      "text": "worst quality, low quality, early, old, score_1, score_2, score_3, score_4, score_5, score_6, monochrome, jpeg artifacts, lowres, blurry, watermark, signature, username, error, bad anatomy, bad hands, missing fingers, extra digits, extra fingers, fewer digits, fused fingers, elongated fingers, long fingers, malformed fingers, mutated hands, poorly drawn hands, disfigured, bad proportions, gross proportions, malformed limbs, extra limbs, missing limbs, floating limbs, flat colors, washed out, dull lighting, oversaturated, amateur, overexposed, blown out highlights, glaring light, glowing glare, bad background, poorly drawn background, simple background, white background, plain background, blank background, solid background, empty background, flat background, grey background, gray background, monochrome background, minimalist background, void background, lacking background, unfinished background",
       "clip": [
         "2",
         0
@@ -69,10 +69,10 @@
   "7": {
     "inputs": {
       "seed": 0,
-      "steps": 12,
-      "cfg": 2.6,
-      "sampler_name": "er_sde",
-      "scheduler": "simple",
+      "steps": 16,
+      "cfg": 2.1,
+      "sampler_name": "euler",
+      "scheduler": "karras",
       "denoise": 1.0,
       "model": [
         "1",

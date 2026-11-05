@@ -65,15 +65,15 @@ NOVA_VAE_NAME = os.environ.get("NOVA_VAE_NAME", "qwen_image_vae.safetensors")
 NOVA_QUALITY_BOOSTER = (
     "masterpiece, best quality, score_9, score_8, score_7, very aesthetic, newest, absurdres, highres, highly detailed, "
     "delicate facial features, beautiful detailed eyes, detailed hair strands, "
-    "cinematic lighting, soft volumetric illumination, vibrant colors, detailed scenery background, "
+    "cinematic lighting, balanced contrast, fine shadows, rich depth, vibrant colors, detailed scenery background, "
     "scenic environment, atmospheric depth, rich environmental details"
 )
 
 ORANGE_QUALITY_BOOSTER = (
     "masterpiece, best quality, score_9, score_8, very aesthetic, newest, absurdres, highres, highly detailed, "
     "semi-realistic anime, expressive facial features, beautiful realistic eyes, soft skin texture, "
-    "detailed scenery background, scenic environment, atmospheric depth, volumetric warm lighting, "
-    "rich shadows, cinematic composition, depth of field"
+    "detailed scenery background, scenic environment, atmospheric depth, warm ambient lighting, "
+    "rich shadows, balanced contrast, cinematic composition, depth of field"
 )
 
 SILVERMOON_QUALITY_BOOSTER = (
@@ -88,7 +88,7 @@ NEGATIVE_DEFAULT = (
     "bad anatomy, bad hands, missing fingers, extra digits, extra fingers, fewer digits, fused fingers, "
     "elongated fingers, long fingers, malformed fingers, mutated hands, poorly drawn hands, disfigured, "
     "bad proportions, gross proportions, malformed limbs, extra limbs, missing limbs, floating limbs, "
-    "flat colors, washed out, dull lighting, oversaturated, amateur"
+    "flat colors, washed out, dull lighting, oversaturated, amateur, overexposed, blown out highlights, glaring light, glowing glare"
 )
 
 NEGATIVE_BG_BLOCK = (
@@ -403,12 +403,12 @@ def build_workflow_from_inputs(inputs: Dict[str, Any]) -> Tuple[Dict[str, Any], 
 
     width = int(inputs.get("width", 768))
     height = int(inputs.get("height", 1024))
-    steps = int(inputs.get("steps", 12))
+    steps = int(inputs.get("steps", 16))
     steps = min(35, max(8, steps))
-    cfg = float(inputs.get("cfg", 2.6))
+    cfg = float(inputs.get("cfg", 2.1))
 
-    sampler = inputs.get("sampler", "er_sde")
-    scheduler = inputs.get("scheduler", "simple")
+    sampler = inputs.get("sampler", "euler")
+    scheduler = inputs.get("scheduler", "karras")
 
     workflow["1"]["inputs"]["unet_name"] = selected_unet
     workflow["2"]["inputs"]["clip_name"] = inputs.get("clip_name", NOVA_CLIP_NAME)

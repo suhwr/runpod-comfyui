@@ -31,10 +31,10 @@ Production-grade, ultra-fast serverless worker powering SOTA anime generation wi
 | `negative_prompt` | `string` | `""` | Optional negative prompt overrides |
 | `width` | `integer` | `768` | Width in pixels (recommended: `768`, `832`, `1024`) |
 | `height` | `integer` | `1024` | Height in pixels (recommended: `1024`, `1216`) |
-| `steps` | `integer` | `12` | Sampling steps (Flow Matching: 12–16 optimal) |
-| `cfg` | `float` | `2.6` | Guidance scale (optimal for Anima DiT: 2.2–3.0) |
-| `sampler` | `string` | `"er_sde"` | Sampler name (`er_sde`, `euler`, `dpmpp_2m`) |
-| `scheduler` | `string` | `"simple"` | Scheduler name (`simple`, `normal`) |
+| `steps` | `integer` | `16` | Sampling steps (Flow Matching: 16 optimal) |
+| `cfg` | `float` | `2.1` | Guidance scale (optimal for Anima DiT: 2.0–2.4) |
+| `sampler` | `string` | `"euler"` | Sampler name (`euler`, `dpmpp_2m`, `er_sde`) |
+| `scheduler` | `string` | `"karras"` | Scheduler name (`karras`, `beta`, `simple`) |
 | `seed` | `integer` | `-1` | Random seed (`-1` for randomized generation) |
 | `workflow` | `object` | `null` | Optional raw ComfyUI API workflow JSON dict |
 
