@@ -438,6 +438,12 @@ def build_workflow_from_inputs(inputs: Dict[str, Any]) -> Tuple[Dict[str, Any], 
     with open(WORKFLOW_ANIMA_PATH, "r", encoding="utf-8") as f:
         workflow = json.load(f)
 
+    preset = str(inputs.get("preset", "")).strip().lower()
+    if preset in ("sketch", "hand_drawn_sketch", "rough_sketch", "pencil_sketch"):
+        quality_booster = "score_9, score_8, very aesthetic, sketch, rough sketch, clean thin lineart, delicate pencil lines, monochrome, hatching, high quality drawing, expressive features"
+    elif preset in ("watercolor_classic", "sugimori", "classic_art", "watercolor"):
+        quality_booster = "score_9, score_8, very aesthetic, classic watercolor, hand-drawn illustration, soft watercolor wash, delicate ink lines, paper texture, harmonious soft palette"
+
     if quality_booster not in raw_prompt:
         positive_text = f"{raw_prompt}, {quality_booster}"
     else:
@@ -468,27 +474,51 @@ def build_workflow_from_inputs(inputs: Dict[str, Any]) -> Tuple[Dict[str, Any], 
         negative_text = base_negative
 
     # ─── Preset & Dynamic Multiple LoRA Chaining ───────────────────────────────
-    preset = str(inputs.get("preset", "")).strip().lower()
     raw_loras = inputs.get("loras") or inputs.get("lora")
     use_turbo = bool(inputs.get("turbo", False) or inputs.get("anima_turbo", False))
 
     lora_list = []
-    if preset in ("digital_art", "artist", "illustrator", "clean_anime"):
-        # The SOTA Digital Artist recipe: Turbo + Aesthetic Boost + Anatomy Fix
+    if preset in ("digital_art", "master_illustrator", "artist", "illustrator", "clean_anime"):
+        # The SOTA Digital Artist recipe: Turbo + Fabric/Hair Detailer + Aesthetic Boost + Anatomy Fix
         lora_list.append({"name": "Anima_Turbo_v1.1.safetensors", "strength": 0.95})
+        lora_list.append({"name": "cloth_and_hair_detailer", "strength": 0.65, "strength_model": 0.60, "strength_clip": 0.70})
         lora_list.append({"name": "aesthetic_boost", "strength": 0.65, "strength_model": 0.60, "strength_clip": 0.75})
         lora_list.append({"name": "anatomy_fix", "strength": 0.75, "strength_model": 0.70, "strength_clip": 0.85})
+    elif preset in ("sketch", "hand_drawn_sketch", "rough_sketch", "pencil_sketch"):
+        # Authentic Hand-Drawn Sketch / Pro Draft
+        lora_list.append({"name": "Anima_Turbo_v1.1.safetensors", "strength": 0.90})
+        lora_list.append({"name": "sketch_style", "strength": 0.80, "strength_model": 0.80, "strength_clip": 0.75})
+        lora_list.append({"name": "cloth_and_hair_detailer", "strength": 0.60, "strength_model": 0.55, "strength_clip": 0.65})
+        lora_list.append({"name": "aesthetic_boost", "strength": 0.50})
+    elif preset in ("character_focus", "strong_character", "character"):
+        # Maximum Character Recognition & Costume Fidelity
+        lora_list.append({"name": "Anima_Turbo_v1.1.safetensors", "strength": 0.95})
+        lora_list.append({"name": "anatomy_fix", "strength": 0.85, "strength_model": 0.70, "strength_clip": 0.95})
+        lora_list.append({"name": "cloth_and_hair_detailer", "strength": 0.70, "strength_model": 0.65, "strength_clip": 0.75})
+        lora_list.append({"name": "aesthetic_boost", "strength": 0.60})
+    elif preset in ("watercolor_classic", "sugimori", "classic_art", "watercolor"):
+        # Classic 90s Hand-Drawn Watercolor (Sugimori Style)
+        lora_list.append({"name": "Anima_Turbo_v1.1.safetensors", "strength": 0.90})
+        lora_list.append({"name": "watercolor_artist", "strength": 0.75, "strength_model": 0.75, "strength_clip": 0.75})
+        lora_list.append({"name": "cloth_and_hair_detailer", "strength": 0.55})
+        lora_list.append({"name": "aesthetic_boost", "strength": 0.50})
     elif preset in ("modern_anime", "pixiv", "noobai"):
+        # Modern Danbooru Vibrant Art (Pixiv / Twitter Style)
         lora_list.append({"name": "Anima_Turbo_v1.1.safetensors", "strength": 0.95})
         lora_list.append({"name": "noobai_style", "strength": 0.70, "strength_model": 0.65, "strength_clip": 0.80})
+        lora_list.append({"name": "cloth_and_hair_detailer", "strength": 0.60})
         lora_list.append({"name": "aesthetic_boost", "strength": 0.60})
     elif preset in ("painterly", "fantasy", "cinematic"):
+        # Cinematic Fantasy Concept Art
         lora_list.append({"name": "Anima_Turbo_v1.1.safetensors", "strength": 0.90})
         lora_list.append({"name": "fantasy_art", "strength": 0.60, "strength_model": 0.60, "strength_clip": 0.70})
+        lora_list.append({"name": "cloth_and_hair_detailer", "strength": 0.55})
         lora_list.append({"name": "aesthetic_boost", "strength": 0.55})
     elif preset in ("retro_90s", "retro", "vintage"):
+        # Retro 90s Vintage Cel Animation
         lora_list.append({"name": "Anima_Turbo_v1.1.safetensors", "strength": 0.90})
         lora_list.append({"name": "retro_90s", "strength": 0.75, "strength_model": 0.70, "strength_clip": 0.80})
+        lora_list.append({"name": "vintage_ova", "strength": 0.50})
     elif use_turbo:
         lora_list.append({
             "name": TURBO_LORA_NAME,
@@ -570,7 +600,14 @@ def build_workflow_from_inputs(inputs: Dict[str, Any]) -> Tuple[Dict[str, Any], 
         default_sampler = "euler"
     elif has_turbo_active:
         default_steps = 10
-        default_cfg = 1.3 if preset in ("digital_art", "artist", "illustrator", "clean_anime") else 1.4
+        if preset in ("sketch", "hand_drawn_sketch", "rough_sketch", "pencil_sketch"):
+            default_cfg = 1.25
+        elif preset in ("digital_art", "master_illustrator", "character_focus", "strong_character", "artist", "illustrator", "clean_anime"):
+            default_cfg = 1.3
+        elif preset in ("painterly", "fantasy", "cinematic"):
+            default_cfg = 1.4
+        else:
+            default_cfg = 1.35
         default_sampler = "euler"
     else:
         default_steps = 16
