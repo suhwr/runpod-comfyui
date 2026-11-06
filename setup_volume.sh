@@ -57,6 +57,18 @@ else
     echo "✅ SilvermoonMix UNet downloaded!"
 fi
 
+# ─── 3. CircleStone Anima Base v1.0 (2.9B) UNet (~4.18GB) [Official Pure Base] ─
+ANIMA_BASE_UNET_NAME="anima-base-v1.0.safetensors"
+ANIMA_BASE_UNET_URL="https://huggingface.co/circlestone-labs/Anima/resolve/main/split_files/diffusion_models/anima-base-v1.0.safetensors"
+
+if [ -f "$DIFFUSION_DIR/$ANIMA_BASE_UNET_NAME" ]; then
+    echo "✅ CircleStone Anima Base v1.0 UNet already exists — skipping download."
+else
+    echo "⬇️ Downloading CircleStone Anima Base v1.0 UNet (~4.18GB)..."
+    aria2c -c -x 16 -s 16 -k 1M --file-allocation=none --dir="$DIFFUSION_DIR" --out="$ANIMA_BASE_UNET_NAME" "$ANIMA_BASE_UNET_URL"
+    echo "✅ CircleStone Anima Base v1.0 UNet downloaded!"
+fi
+
 # ─── 4. Shared Qwen Text Encoder (~1.1GB) ───────────────────────────────────
 NOVA_CLIP_NAME="qwen_3_06b_base.safetensors"
 NOVA_CLIP_URL="https://huggingface.co/circlestone-labs/Anima/resolve/main/split_files/text_encoders/qwen_3_06b_base.safetensors"

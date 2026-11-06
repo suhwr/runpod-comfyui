@@ -53,12 +53,38 @@ MAX_CONCURRENCY = max(1, int(os.environ.get("MAX_CONCURRENCY", "1")))
 TEMPLATE_DIR = os.path.dirname(__file__)
 WORKFLOW_ANIMA_PATH = os.path.join(TEMPLATE_DIR, "workflow_anima.json")
 
-# Model Filenames (Pure 2.9B DiT sharing the same Qwen Text Encoder & VAE)
+# Model Filenames & URLs (Pure 2.9B DiT sharing the same Qwen Text Encoder & VAE)
 NOVA_UNET_NAME = os.environ.get("NOVA_UNET_NAME", "novaAnimeAM_v6029B.safetensors")
+NOVA_UNET_URL = os.environ.get(
+    "NOVA_UNET_URL",
+    "https://huggingface.co/mogaru99/novaAnimeAM_v6029B/resolve/main/novaAnimeAM_v6029B.safetensors"
+)
+
 SILVERMOON_UNET_NAME = os.environ.get("SILVERMOON_UNET_NAME", "SilvermoonMix-Anima29B-Evolved-V2.3.safetensors")
+SILVERMOON_UNET_URL = os.environ.get(
+    "SILVERMOON_UNET_URL",
+    "https://huggingface.co/silvermoong/SilvermoonMix-Anima-Evolved/resolve/main/SilvermoonMix-Anima29B-Evolved-V2.3.safetensors"
+)
+
 ORANGE_UNET_NAME = os.environ.get("ORANGE_UNET_NAME", "novaOrangeAM_v4029B.safetensors")
+ORANGE_UNET_URL = os.environ.get(
+    "ORANGE_UNET_URL",
+    "https://huggingface.co/mogaru99/novaOrangeAM_v4029B/resolve/main/novaOrangeAM_v4029B.safetensors"
+)
+
 ANIMA_BASE_UNET_NAME = os.environ.get("ANIMA_BASE_UNET_NAME", "anima-base-v1.0.safetensors")
+ANIMA_BASE_UNET_URL = os.environ.get(
+    "ANIMA_BASE_UNET_URL",
+    "https://huggingface.co/circlestone-labs/Anima/resolve/main/split_files/diffusion_models/anima-base-v1.0.safetensors"
+)
+
 ANIMA_TURBO_UNET_NAME = os.environ.get("ANIMA_TURBO_UNET_NAME", "anima-turbo-v1.1.safetensors")
+ANIMA_TURBO_UNET_URL = os.environ.get(
+    "ANIMA_TURBO_UNET_URL",
+    "https://huggingface.co/circlestone-labs/Anima/resolve/main/split_files/diffusion_models/anima-turbo-v1.1.safetensors"
+)
+
+DEFAULT_MODEL = os.environ.get("DEFAULT_MODEL", "anima_base")
 
 NOVA_CLIP_NAME = os.environ.get("NOVA_CLIP_NAME", "qwen_3_06b_base.safetensors")
 NOVA_VAE_NAME = os.environ.get("NOVA_VAE_NAME", "qwen_image_vae.safetensors")
@@ -256,6 +282,55 @@ def resolve_vae_name(requested_name: str) -> str:
         if available:
             return available[0]
     return NOVA_VAE_NAME
+
+
+def ensure_model_on_disk(filename: str, url: str) -> bool:
+    """
+    Ensure the requested UNet model exists on disk.
+    If missing, download it on demand via aria2c/curl so user requests NEVER get falsely downgraded.
+    """
+    dest_path = os.path.join(COMFY_DIR, "models", "diffusion_models", filename)
+    if os.path.isfile(dest_path) and os.path.getsize(dest_path) > 1_000_000_000:
+        return True
+
+    logger.info(f"⬇️ Model '{filename}' requested but not found locally. Initiating high-speed on-demand download from {url}...")
+    tmp_path = dest_path + ".tmp"
+    models_dir = os.path.join(COMFY_DIR, "models", "diffusion_models")
+    os.makedirs(models_dir, exist_ok=True)
+
+    # 1. High-speed multi-connection aria2c download
+    try:
+        cmd = [
+            "aria2c", "-c", "-x", "16", "-s", "16", "-k", "1M",
+            "--file-allocation=none",
+            f"--dir={models_dir}",
+            f"--out={filename}.tmp",
+            url
+        ]
+        res = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, timeout=300)
+        if res.returncode == 0 and os.path.isfile(tmp_path):
+            os.replace(tmp_path, dest_path)
+            logger.info(f"✅ Successfully downloaded '{filename}' ({os.path.getsize(dest_path)} bytes) via aria2c!")
+            return True
+        else:
+            logger.warning(f"aria2c download failed (code {res.returncode}): {res.stderr.decode('utf-8', errors='ignore')[:300]}")
+    except Exception as exc:
+        logger.warning(f"aria2c execution error: {exc}, attempting curl fallback...")
+
+    # 2. Curl fallback
+    try:
+        cmd = ["curl", "-L", "-s", "--retry", "3", "--connect-timeout", "30", "-o", tmp_path, url]
+        res = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, timeout=300)
+        if res.returncode == 0 and os.path.isfile(tmp_path):
+            os.replace(tmp_path, dest_path)
+            logger.info(f"✅ Successfully downloaded '{filename}' via curl ({os.path.getsize(dest_path)} bytes)!")
+            return True
+    except Exception as exc:
+        logger.error(f"❌ Failed to download '{filename}': {exc}")
+        if os.path.exists(tmp_path):
+            os.remove(tmp_path)
+
+    return False
 
 
 # Allowed samplers & schedulers in ComfyUI KSampler (Guards against invalid inputs)
@@ -551,39 +626,62 @@ def build_workflow_from_inputs(inputs: Dict[str, Any]) -> Tuple[Dict[str, Any], 
     if not raw_prompt:
         raise ValueError("prompt is required")
 
-    model_choice = str(inputs.get("model", "nova")).strip().lower()
+    model_choice = str(inputs.get("model", DEFAULT_MODEL)).strip().lower()
     raw_unet_req = inputs.get("unet_name", "")
+    target_url = ""
 
-    # Determine desired UNet target and display name
+    # Determine desired UNet target, download URL, and display name
     if "silvermoon" in model_choice or "silver" in model_choice or "moon" in model_choice:
         target_unet = raw_unet_req or SILVERMOON_UNET_NAME
+        target_url = SILVERMOON_UNET_URL
         active_model_name = "SilvermoonMix Anima Evolved (2.9B)"
         quality_booster = SILVERMOON_QUALITY_BOOSTER
-    elif "base" in model_choice or "circlestone" in model_choice:
+    elif "base" in model_choice or "circlestone" in model_choice or "anima_base" in model_choice:
         target_unet = raw_unet_req or ANIMA_BASE_UNET_NAME
+        target_url = ANIMA_BASE_UNET_URL
         active_model_name = "CircleStone Anima Base v1.0 (2.9B DiT)"
         quality_booster = NOVA_QUALITY_BOOSTER
     elif "anima_turbo" in model_choice:
         target_unet = raw_unet_req or ANIMA_TURBO_UNET_NAME
+        target_url = ANIMA_TURBO_UNET_URL
         active_model_name = "CircleStone Anima Turbo v1.1 (2.9B DiT)"
         quality_booster = NOVA_QUALITY_BOOSTER
     elif "orange" in model_choice or "2.5d" in model_choice:
         target_unet = raw_unet_req or ORANGE_UNET_NAME
+        target_url = ORANGE_UNET_URL
         active_model_name = "Nova Orange AM (2.9B)"
         quality_booster = ORANGE_QUALITY_BOOSTER
-    else:
-        # Default: Nova Anime AM v6.0 (2D Anime Flagship & Danbooru Master)
+    elif "nova" in model_choice or "anime" in model_choice:
         target_unet = raw_unet_req or NOVA_UNET_NAME
+        target_url = NOVA_UNET_URL
         active_model_name = "Nova Anime AM v6.0 (2.9B)"
         quality_booster = NOVA_QUALITY_BOOSTER
+    else:
+        # Default fallback to ANIMA_BASE_UNET_NAME
+        target_unet = raw_unet_req or ANIMA_BASE_UNET_NAME
+        target_url = ANIMA_BASE_UNET_URL
+        active_model_name = "CircleStone Anima Base v1.0 (2.9B DiT)"
+        quality_booster = NOVA_QUALITY_BOOSTER
 
-    # Resolve against actual models available in ComfyUI to guarantee NO 400 "Value not in list"
+    # If target model is not present on disk, download it on demand!
+    target_path = os.path.join(COMFY_DIR, "models", "diffusion_models", target_unet)
+    if not os.path.isfile(target_path) and target_url:
+        logger.info(f"⚡ Target model '{target_unet}' missing locally. Triggering on-demand download...")
+        downloaded = ensure_model_on_disk(target_unet, target_url)
+        if downloaded:
+            # Refresh ComfyUI model cache
+            try:
+                requests.post(f"http://{COMFY_HOST}/free", json={"unload_models": False, "free_memory": False}, timeout=2)
+            except Exception:
+                pass
+
+    # Resolve against actual models available in ComfyUI
     available_unets = get_comfy_available_unets()
     logger.info(f"🔎 Available UNets recognized by ComfyUI: {available_unets}")
     selected_unet, is_available = resolve_unet_name(target_unet, available_unets)
 
     if not is_available:
-        # Requested model was not found in container, update active_model_name accurately
+        # Only in the worst-case scenario where download failed completely
         if "silver" in selected_unet.lower():
             active_model_name = f"SilvermoonMix Anima Evolved (2.9B) [Auto-fallback from {target_unet}]"
             quality_booster = SILVERMOON_QUALITY_BOOSTER

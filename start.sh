@@ -18,13 +18,17 @@ LORA_DIR="/app/ComfyUI/models/loras"
 mkdir -p "$DIFFUSION_DIR" "$TEXT_ENCODER_DIR" "$VAE_DIR" "$CHECKPOINT_DIR" "$LORA_DIR"
 
 # ─── Pure DiT Anime Models Config ─────────────────────────────────────────────
-# Model 1: Nova Anime AM v6.0 (2.9B) [Default Anime 2D Flagship]
+# Model 1: Nova Anime AM v6.0 (2.9B) [Anime 2D/Stylized Master]
 NOVA_UNET_NAME="${NOVA_UNET_NAME:-novaAnimeAM_v6029B.safetensors}"
 NOVA_UNET_URL="${NOVA_UNET_URL:-https://huggingface.co/mogaru99/novaAnimeAM_v6029B/resolve/main/novaAnimeAM_v6029B.safetensors}"
 
 # Model 2: SilvermoonMix Anima Evolved (2.9B) [Aesthetic Digital Art & Soft Lighting]
 SILVERMOON_UNET_NAME="${SILVERMOON_UNET_NAME:-SilvermoonMix-Anima29B-Evolved-V2.3.safetensors}"
 SILVERMOON_UNET_URL="${SILVERMOON_UNET_URL:-https://huggingface.co/silvermoong/SilvermoonMix-Anima-Evolved/resolve/main/SilvermoonMix-Anima29B-Evolved-V2.3.safetensors}"
+
+# Model 3: CircleStone Anima Base v1.0 (2.9B) [Official Pure 2D DiT Base Model]
+ANIMA_BASE_UNET_NAME="${ANIMA_BASE_UNET_NAME:-anima-base-v1.0.safetensors}"
+ANIMA_BASE_UNET_URL="${ANIMA_BASE_UNET_URL:-https://huggingface.co/circlestone-labs/Anima/resolve/main/split_files/diffusion_models/anima-base-v1.0.safetensors}"
 
 # Shared Text Encoder & VAE (Used across all Anima DiT models!)
 NOVA_CLIP_NAME="${NOVA_CLIP_NAME:-qwen_3_06b_base.safetensors}"
@@ -129,6 +133,18 @@ else
         curl -L -# --retry 3 --connect-timeout 30 -o "$DIFFUSION_DIR/$SILVERMOON_UNET_NAME" "$SILVERMOON_UNET_URL"
     fi
     echo "✅ SilvermoonMix UNet downloaded successfully!"
+fi
+
+if [ -f "$DIFFUSION_DIR/$ANIMA_BASE_UNET_NAME" ]; then
+    echo "⚡ CircleStone Anima Base v1.0 UNet is already available: $DIFFUSION_DIR/$ANIMA_BASE_UNET_NAME"
+else
+    echo "⬇️ Downloading CircleStone Anima Base v1.0 UNet ($ANIMA_BASE_UNET_NAME)..."
+    if command -v aria2c >/dev/null 2>&1; then
+        aria2c -c -x 16 -s 16 -k 1M --file-allocation=none --dir="$DIFFUSION_DIR" --out="$ANIMA_BASE_UNET_NAME" "$ANIMA_BASE_UNET_URL" || true
+    else
+        curl -L -# --retry 3 --connect-timeout 30 -o "$DIFFUSION_DIR/$ANIMA_BASE_UNET_NAME" "$ANIMA_BASE_UNET_URL" || true
+    fi
+    echo "✅ CircleStone Anima Base v1.0 UNet downloaded successfully!"
 fi
 
 if [ -f "$TEXT_ENCODER_DIR/$NOVA_CLIP_NAME" ]; then

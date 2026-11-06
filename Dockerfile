@@ -20,6 +20,9 @@ ENV DEBIAN_FRONTEND=noninteractive \
     NOVA_UNET_URL=https://huggingface.co/mogaru99/novaAnimeAM_v6029B/resolve/main/novaAnimeAM_v6029B.safetensors \
     SILVERMOON_UNET_NAME=SilvermoonMix-Anima29B-Evolved-V2.3.safetensors \
     SILVERMOON_UNET_URL=https://huggingface.co/silvermoong/SilvermoonMix-Anima-Evolved/resolve/main/SilvermoonMix-Anima29B-Evolved-V2.3.safetensors \
+    ANIMA_BASE_UNET_NAME=anima-base-v1.0.safetensors \
+    ANIMA_BASE_UNET_URL=https://huggingface.co/circlestone-labs/Anima/resolve/main/split_files/diffusion_models/anima-base-v1.0.safetensors \
+    DEFAULT_MODEL=anima_base \
     NOVA_CLIP_NAME=qwen_3_06b_base.safetensors \
     NOVA_CLIP_URL=https://huggingface.co/circlestone-labs/Anima/resolve/main/split_files/text_encoders/qwen_3_06b_base.safetensors \
     NOVA_VAE_NAME=qwen_image_vae.safetensors \
@@ -86,7 +89,12 @@ RUN aria2c -c -x 16 -s 16 -k 1M --file-allocation=none \
     --dir=/app/ComfyUI/models/diffusion_models --out=SilvermoonMix-Anima29B-Evolved-V2.3.safetensors \
     https://huggingface.co/silvermoong/SilvermoonMix-Anima-Evolved/resolve/main/SilvermoonMix-Anima29B-Evolved-V2.3.safetensors
 
-# 6c. Qwen Text Encoder (~1.1 GB) & Qwen VAE (~240 MB)
+# 6c. CircleStone Anima Base v1.0 UNet (~4.18 GB) [Official Pure 2D DiT Base Model]
+RUN aria2c -c -x 16 -s 16 -k 1M --file-allocation=none \
+    --dir=/app/ComfyUI/models/diffusion_models --out=anima-base-v1.0.safetensors \
+    https://huggingface.co/circlestone-labs/Anima/resolve/main/split_files/diffusion_models/anima-base-v1.0.safetensors
+
+# 6d. Qwen Text Encoder (~1.1 GB) & Qwen VAE (~240 MB)
 RUN aria2c -c -x 8 -s 8 -k 1M --file-allocation=none \
     --dir=/app/ComfyUI/models/text_encoders --out=qwen_3_06b_base.safetensors \
     https://huggingface.co/circlestone-labs/Anima/resolve/main/split_files/text_encoders/qwen_3_06b_base.safetensors \
@@ -94,7 +102,7 @@ RUN aria2c -c -x 8 -s 8 -k 1M --file-allocation=none \
     --dir=/app/ComfyUI/models/vae --out=qwen_image_vae.safetensors \
     https://huggingface.co/circlestone-labs/Anima/resolve/main/split_files/vae/qwen_image_vae.safetensors
 
-# 6d. Bake Curated SOTA LoRA Collection directly into the image (~1.2 GB, 0ms cold start)
+# 6e. Bake Curated SOTA LoRA Collection directly into the image (~1.2 GB, 0ms cold start)
 COPY download_loras.sh /app/download_loras.sh
 RUN chmod +x /app/download_loras.sh && /app/download_loras.sh /app/ComfyUI/models/loras
 

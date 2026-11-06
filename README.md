@@ -69,7 +69,7 @@ All 14 LoRAs are downloaded during `docker build` into `/app/ComfyUI/models/lora
 | :--- | :---: | :---: | :--- |
 | `prompt` | `string` | *(Required)* | Positive anime prompt tags. |
 | `preset` | `string` | `""` | Quick multi-LoRA preset (`master_illustrator`, `hand_drawn_sketch`, `character_focus`, `watercolor_classic`, `modern_anime`, `painterly`, `retro_90s`). |
-| `model` | `string` | `"nova"` | Base model: `"nova"` (Nova Anime AM v6.0), `"silvermoon"` (SilvermoonMix Anima Evolved), `"anima_base"` (CircleStone Anima Base v1.0 DiT), `"orange"` (Nova Orange AM 2.5D). |
+| `model` | `string` | `"anima_base"` | Base model: `"anima_base"` (CircleStone Anima Base v1.0 DiT - Pure 2D Base with auto-download if missing), `"nova"` (Nova Anime AM v6.0), `"silvermoon"` (SilvermoonMix Anima Evolved), `"orange"` (Nova Orange AM 2.5D). |
 | `turbo` | `boolean` | `false` | Enable Anima Turbo v1.1 standalone (10 steps, CFG 1.4, euler). |
 | `turbo_strength` | `float` | `1.0` | Turbo strength override (0.0 to 1.0). |
 | `loras` | `array` | `[]` | Dynamic multiple LoRA chaining (`[{"name": "...", "strength": 0.8}]`). Can be stacked on top of any `preset`. |

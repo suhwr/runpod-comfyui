@@ -1,6 +1,27 @@
 {
   "$schema_description": "RunPod ComfyUI Worker Request Templates & Multi-LoRA Presets Specification",
 
+  "available_base_models": [
+    {
+      "key": "anima_base",
+      "aliases": ["base", "circlestone"],
+      "unet_file": "anima-base-v1.0.safetensors",
+      "description": "CircleStone Anima Base v1.0 (2.9B DiT). Model resmi asli tanpa merge 2.5D. Menghasilkan gaya 2D anime murni dan cel-shading bersih."
+    },
+    {
+      "key": "nova",
+      "aliases": ["nova_anime", "anime"],
+      "unet_file": "novaAnimeAM_v6029B.safetensors",
+      "description": "Nova Anime AM v6.0 (2.9B DiT). Fine-tune komunitas dengan pengenalan Danbooru karakter komprehensif."
+    },
+    {
+      "key": "silvermoon",
+      "aliases": ["silver", "moon"],
+      "unet_file": "SilvermoonMix-Anima29B-Evolved-V2.3.safetensors",
+      "description": "SilvermoonMix Anima Evolved v2.3 (2.9B DiT). Fine-tune lembut untuk lukisan artistik dan goresan kuas halus."
+    }
+  ],
+
   "available_multi_lora_presets": [
     {
       "name": "pure_2d",
