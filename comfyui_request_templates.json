@@ -1,8 +1,83 @@
 {
   "$schema_description": "RunPod ComfyUI Worker Request Templates & LoRA Specification",
+  "available_baked_loras": [
+    {
+      "file": "Anima_Turbo_v1.1.safetensors",
+      "aliases": ["turbo", "anima_turbo", "anima-turbo-lora-v0.2.safetensors"],
+      "category": "Speed & Anti-Slop",
+      "recommended_steps": 10,
+      "recommended_cfg": 1.4,
+      "description": "Step distillation resmi Anima, render 8-10 steps, hilangkan efek kulit plastik/berminyak (AI Slop)."
+    },
+    {
+      "file": "anima_turbo_4step_v3.safetensors",
+      "aliases": ["turbo_4step", "anima_turbo_4step"],
+      "category": "Ultra Fast",
+      "recommended_steps": 4,
+      "recommended_cfg": 1.2,
+      "description": "Generasi super kilat 4 steps untuk preview instan sub-1 detik."
+    },
+    {
+      "file": "anima-highres-aesthetic-boost.safetensors",
+      "aliases": ["aesthetic_boost", "highres_boost"],
+      "category": "Detail & Polish",
+      "recommended_strength": 0.7,
+      "description": "Booster resmi CircleStone untuk memperjelas mata, helai rambut, dan kejernihan lineart."
+    },
+    {
+      "file": "anima-rl-v0.1.safetensors",
+      "aliases": ["anatomy_fix", "anima_rl"],
+      "category": "Anatomy",
+      "recommended_strength": 0.8,
+      "description": "Tuned via Reinforcement Learning untuk akurasi jari/tangan dan kepatuhan prompt kompleks."
+    },
+    {
+      "file": "anima-greg-rutkowski-style.safetensors",
+      "aliases": ["fantasy_art", "dramatic_lighting"],
+      "category": "Lighting & Atmosphere",
+      "recommended_strength": 0.75,
+      "description": "Pencahayaan dramatis, latar fantasi, dan kedalaman atmosferis."
+    },
+    {
+      "file": "noobai-style-anima-lora-final.safetensors",
+      "aliases": ["noobai_style", "noobai"],
+      "category": "Modern Anime",
+      "recommended_strength": 0.8,
+      "description": "Gaya ilustrasi anime modern vibrant Danbooru (adaptasi NoobAI untuk Anima)."
+    },
+    {
+      "file": "SailorMoon-A1_v1.safetensors",
+      "aliases": ["retro_90s", "retro_anime_90s", "sailormoon_style"],
+      "category": "Vintage 90s Style",
+      "recommended_strength": 0.7,
+      "description": "Gaya anime klasik 90-an dengan cel-shading nostalgik dan tone warna vintage."
+    },
+    {
+      "file": "DragonBall-A1_v1.safetensors",
+      "aliases": ["dynamic_action", "dynamic_action_pose", "dragonball_style"],
+      "category": "Action & Battle Pose",
+      "recommended_strength": 0.8,
+      "description": "Pose bertarung dinamis, garis aksi tajam, dan intensitas pertempuran anime."
+    },
+    {
+      "file": "Gunsmith-A1_v1.safetensors",
+      "aliases": ["vintage_ova", "gunsmith_style"],
+      "category": "90s OVA Anime",
+      "recommended_strength": 0.75,
+      "description": "Gaya OVA 90-an legendaris: kostum detail, props mekanikal & lineart tajam."
+    },
+    {
+      "file": "Helltaker-A1_v1.safetensors",
+      "aliases": ["sharp_lineart", "helltaker_style"],
+      "category": "Sharp Lineart",
+      "recommended_strength": 0.75,
+      "description": "Lineart tinta kontras tinggi, siluet tegas dan karakter bergaya stylish."
+    }
+  ],
+
   "examples": {
     "1_recommended_turbo_anti_slop": {
-      "description": "Rekomendasi terbaik (Langsung jalan sekarang tanpa upload file tambahan): Cepat (~1.5-2.5s), hemat credit RunPod, hasil 2D anime tajam & anti AI slop (otomatis inject Anima Turbo v1.1, 10 steps, CFG 1.4, sampler euler).",
+      "description": "Paling simpel: Cepat (~1.5-2.5s), hemat credit RunPod, hasil 2D anime tajam & anti AI slop (otomatis Anima Turbo v1.1, 10 steps, CFG 1.4, sampler euler).",
       "payload": {
         "input": {
           "prompt": "1girl, silver hair, glowing blue eyes, white hoodie, headphone, standing in cyberpunk tokyo street, neon reflection",
@@ -11,28 +86,8 @@
       }
     },
 
-    "2_active_lora_explicit_example": {
-      "description": "Contoh LoRA yang SUDAH TERSEDIA di container saat ini: Menggunakan Anima_Turbo_v1.1.safetensors secara eksplisit.",
-      "payload": {
-        "input": {
-          "prompt": "1girl, silver hair, glowing blue eyes, white hoodie, headphone, standing in cyberpunk tokyo street, neon reflection",
-          "loras": [
-            {
-              "name": "Anima_Turbo_v1.1.safetensors",
-              "strength": 1.0,
-              "strength_model": 1.0,
-              "strength_clip": 1.0
-            }
-          ],
-          "steps": 10,
-          "cfg": 1.4,
-          "sampler": "euler"
-        }
-      }
-    },
-
-    "3_multiple_loras_chaining_custom": {
-      "description": "Multiple LoRA berantai (Catatan: File selain Anima Turbo seperti pose/style harus di-upload dulu ke Network Volume di /models/loras/): Menggabungkan Anima Turbo dengan LoRA pose dan style. Bisa mengatur strength UNet (model) dan CLIP (prompt) secara terpisah.",
+    "2_action_battle_retro_style": {
+      "description": "Contoh Multi-LoRA: Menggabungkan Turbo + Dynamic Action Pose + Retro 90s Style. Sudah di-symlink dan langsung jalan tanpa crash!",
       "payload": {
         "input": {
           "prompt": "1girl, solo, fighting stance, dynamic action pose, retro 90s aesthetic, sharp lineart, katana, floating sakura petals",
@@ -56,51 +111,37 @@
       }
     },
 
-    "3_simple_lora_string_list": {
-      "description": "Format ringkas (array of string): Jika tidak perlu custom strength terpisah (default strength 1.0).",
+    "3_extreme_speed_4step": {
+      "description": "Generasi super kilat 4 steps: Selesai di bawah 1 detik! Sangat cocok untuk rapid prototyping atau preview instan.",
       "payload": {
         "input": {
-          "prompt": "1girl, cute maid outfit, serving tea, cafe interior",
-          "turbo": true,
-          "loras": [
-            "maid_costume_v2.safetensors",
-            "detailed_eyes.safetensors"
-          ]
-        }
-      }
-    },
-
-    "4_single_custom_lora_without_turbo": {
-      "description": "Inference standar 16 steps tanpa Turbo (menggunakan er_sde sampler & CFG 2.1) + 1 LoRA karakter/gaya.",
-      "payload": {
-        "input": {
-          "prompt": "1girl, silver hair, kimono, traditional japanese garden, pond with koi fish",
-          "turbo": false,
+          "prompt": "1girl, cute maid outfit, serving tea, cafe interior, sunny day",
           "loras": [
             {
-              "name": "japanese_traditional_style.safetensors",
-              "strength": 0.75
+              "name": "turbo_4step.safetensors",
+              "strength": 1.0
             }
           ],
-          "steps": 16,
-          "cfg": 2.1,
-          "sampler": "er_sde",
-          "scheduler": "simple"
+          "width": 768,
+          "height": 1024
         }
       }
     },
 
-    "5_silvermoon_model_with_lora": {
-      "description": "Menggunakan base model SilvermoonMix Anima Evolved (lebih painterly / illustration look) dengan LoRA.",
+    "4_maximum_quality_boost_and_anatomy": {
+      "description": "Kombo Polish & Akurasi: Menggabungkan Highres Aesthetic Boost + RL Anatomy Fix untuk tangan sempurna dan detail mata tajam.",
       "payload": {
         "input": {
-          "prompt": "1girl, fantasy archer, forest background, god rays sunlight, detailed leather armor, wooden bow",
-          "model": "silvermoon",
+          "prompt": "1girl, silver hair, delicate hands, intricate fingers, kimono, holding traditional fan, japanese tea room, cherry blossoms",
           "turbo": true,
           "loras": [
             {
-              "name": "fantasy_armor_pack.safetensors",
-              "strength": 0.85
+              "name": "aesthetic_boost.safetensors",
+              "strength": 0.75
+            },
+            {
+              "name": "anatomy_fix.safetensors",
+              "strength": 0.8
             }
           ],
           "width": 832,
@@ -109,37 +150,71 @@
       }
     },
 
-    "6_all_parameters_reference": {
-      "description": "Semua parameter yang bisa dikirimkan ke RunPod ComfyUI handler beserta nilai default dan penjelasannya.",
+    "5_noobai_vibrant_illustration": {
+      "description": "Gaya modern NoobAI v1.1 yang colorful dan eye-catching dipadukan dengan Anima Turbo.",
       "payload": {
         "input": {
-          "prompt": "1girl, silver hair, braided ponytail, red eyes, high school uniform, rooftop, sunset sky, wind blowing hair",
-          "negative_prompt": "glasses, hat, lowres, extra limbs",
-          "model": "nova",
+          "prompt": "1girl, cat ears, colorful jacket, urban rooftop, sunset sky, lens flare, detailed illustration",
           "turbo": true,
-          "turbo_strength": 1.0,
           "loras": [
             {
-              "name": "Anima_Turbo_v1.1.safetensors",
-              "strength": 1.0,
-              "strength_model": 1.0,
-              "strength_clip": 1.0
-            },
-            {
-              "name": "dynamic_pose.safetensors",
-              "strength": 0.8,
-              "strength_model": 0.8,
-              "strength_clip": 0.7
+              "name": "noobai_style.safetensors",
+              "strength": 0.85
             }
           ],
           "width": 768,
-          "height": 1024,
-          "steps": 10,
-          "cfg": 1.4,
-          "sampler": "euler",
-          "scheduler": "simple",
-          "seed": 420691337,
-          "catbox_hash": ""
+          "height": 1024
+        }
+      }
+    },
+
+    "6_fantasy_art_dramatic_lighting": {
+      "description": "Gaya fantasi artistik dengan atmospheric lighting dramatis (Greg Rutkowski style) menggunakan base model Silvermoon.",
+      "payload": {
+        "input": {
+          "prompt": "1girl, fantasy archer, glowing crystal arrows, enchanted forest, god rays sunlight, mist, cinematic lighting",
+          "model": "silvermoon",
+          "turbo": true,
+          "loras": [
+            {
+              "name": "fantasy_art.safetensors",
+              "strength": 0.7
+            }
+          ],
+          "width": 832,
+          "height": 1216
+        }
+      }
+    },
+
+    "7_vintage_90s_ova_action": {
+      "description": "Gaya anime OVA era 90-an (Gunsmith Cats aesthetic) dengan detail mekanikal dan jaket kulit tajam.",
+      "payload": {
+        "input": {
+          "prompt": "1girl, brown hair, leather jacket, holding revolver, vintage muscle car background, night city highway",
+          "turbo": true,
+          "loras": [
+            {
+              "name": "vintage_ova.safetensors",
+              "strength": 0.8
+            }
+          ]
+        }
+      }
+    },
+
+    "8_sharp_lineart_stylish": {
+      "description": "Gaya Helltaker high-contrast dengan garis tinta hitam tegas dan komposisi stylish.",
+      "payload": {
+        "input": {
+          "prompt": "1girl, white hair, sharp red eyes, black business suit, tie, grinning, sharp silhouette",
+          "turbo": true,
+          "loras": [
+            {
+              "name": "sharp_lineart.safetensors",
+              "strength": 0.8
+            }
+          ]
         }
       }
     }
@@ -164,17 +239,11 @@
       "default": false,
       "description": "Jika true, otomatis mengaktifkan LoRA Anima_Turbo_v1.1, memangkas steps ke 10, CFG ke 1.4, dan sampler ke euler. Waktu eksekusi ~2x lebih cepat dan mencegah efek AI Slop (kulit berminyak/plastik)."
     },
-    "turbo_strength": {
-      "type": "float",
-      "required": false,
-      "default": 1.0,
-      "description": "Kekuatan LoRA Anima Turbo (0.0 sampai 1.0)."
-    },
     "loras": {
       "type": "array of objects or array of strings",
       "required": false,
       "default": [],
-      "description": "Daftar LoRA yang di-chaining berurutan. Format objek mendukung: 'name' (nama file LoRA di /models/loras/), 'strength' (multiplier umum), 'strength_model' (multiplier UNet), 'strength_clip' (multiplier CLIP text encoder). Failsafe: Jika file LoRA tidak ditemukan di disk, worker tidak akan crash, melainkan melewati LoRA tersebut dan mencatatnya di field 'loras_missing'."
+      "description": "Daftar LoRA yang di-chaining berurutan. Format objek mendukung: 'name' (nama file LoRA atau alias), 'strength' (multiplier umum), 'strength_model' (multiplier UNet), 'strength_clip' (multiplier CLIP). Worker otomatis memvalidasi ke daftar LoRA ComfyUI. LoRA yang tidak ditemukan akan di-skip tanpa crash dan dilaporkan di 'loras_missing'."
     },
     "negative_prompt": {
       "type": "string",
@@ -197,20 +266,20 @@
     "steps": {
       "type": "integer",
       "required": false,
-      "default": "10 jika turbo=true, 16 jika turbo=false",
+      "default": "4 jika 4step, 10 jika turbo=true, 16 jika turbo=false",
       "min": 4,
       "max": 35
     },
     "cfg": {
       "type": "float",
       "required": false,
-      "default": "1.4 jika turbo=true, 2.1 jika turbo=false",
+      "default": "1.2 jika 4step, 1.4 jika turbo=true, 2.1 jika turbo=false",
       "note": "Pada Anima DiT, CFG di atas 2.5 menyebabkan over-saturation dan tekstur plastik (AI Slop). Disarankan 1.2-1.5 untuk Turbo, 2.0-2.3 untuk Non-Turbo."
     },
     "sampler": {
       "type": "string",
       "required": false,
-      "default": "euler jika turbo=true, er_sde jika turbo=false",
+      "default": "euler jika turbo/4step, er_sde jika normal",
       "options": ["euler", "er_sde", "euler_ancestral", "dpmpp_2m", "dpmpp_sde", "uni_pc"]
     },
     "scheduler": {

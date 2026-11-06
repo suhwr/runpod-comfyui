@@ -94,12 +94,9 @@ RUN aria2c -c -x 8 -s 8 -k 1M --file-allocation=none \
     --dir=/app/ComfyUI/models/vae --out=qwen_image_vae.safetensors \
     https://huggingface.co/circlestone-labs/Anima/resolve/main/split_files/vae/qwen_image_vae.safetensors
 
-# 6d. Bake Anima Turbo v1.1 LoRA (~149 MB) directly into the image (0ms cold start)
-RUN aria2c -c -x 8 -s 8 -k 1M --file-allocation=none \
-    --dir=/app/ComfyUI/models/loras --out=Anima_Turbo_v1.1.safetensors \
-    https://huggingface.co/watanbe4112/Anima_Turbo_LoRA/resolve/main/anima-turbo-lora-v0.2.safetensors \
- && ln -sf Anima_Turbo_v1.1.safetensors /app/ComfyUI/models/loras/anima-turbo-lora-v0.2.safetensors \
- && ln -sf Anima_Turbo_v1.1.safetensors /app/ComfyUI/models/loras/anima_turbo.safetensors
+# 6d. Bake Curated SOTA LoRA Collection directly into the image (~1.2 GB, 0ms cold start)
+COPY download_loras.sh /app/download_loras.sh
+RUN chmod +x /app/download_loras.sh && /app/download_loras.sh /app/ComfyUI/models/loras
 
 # 7. Copy handler, workflows, and startup script
 COPY workflow_anima.json /app/workflow_anima.json
@@ -109,7 +106,7 @@ COPY start.sh /app/start.sh
 COPY setup_volume.sh /app/setup_volume.sh
 COPY README.md /app/README.md
 
-RUN chmod +x /app/start.sh /app/setup_volume.sh /app/warmup.py \
+RUN chmod +x /app/start.sh /app/setup_volume.sh /app/download_loras.sh /app/warmup.py \
     && python3 -m compileall -q /app/ComfyUI \
     && python3 -m compileall -q /app \
     && python3 -m compileall -q /usr/local/lib/python3.11/dist-packages || true

@@ -147,25 +147,10 @@ else
 fi
 
 # ==============================================================================
-# 3. Check & Download Anima Turbo LoRA (Default Anti-Slop & Acceleration LoRA)
+# 3. Check & Sync Curated LoRA Collection (Turbo, Quality, & Styles)
 # ==============================================================================
-TURBO_LORA_NAME="Anima_Turbo_v1.1.safetensors"
-TURBO_LORA_URL="https://huggingface.co/watanbe4112/Anima_Turbo_LoRA/resolve/main/anima-turbo-lora-v0.2.safetensors"
-
-if [ -f "$LORA_DIR/$TURBO_LORA_NAME" ] || [ -f "$LORA_DIR/anima-turbo-lora-v0.2.safetensors" ]; then
-    echo "⚡ Anima Turbo v1.1 LoRA is already available in $LORA_DIR"
-else
-    echo "⬇️ Downloading default Anima Turbo v1.1 LoRA to container (~149MB)..."
-    if command -v aria2c >/dev/null 2>&1; then
-        aria2c -c -x 8 -s 8 -k 1M --file-allocation=none --dir="$LORA_DIR" --out="$TURBO_LORA_NAME" "$TURBO_LORA_URL" || true
-    else
-        curl -L -s --retry 3 -o "$LORA_DIR/$TURBO_LORA_NAME" "$TURBO_LORA_URL" || true
-    fi
-    if [ -f "$LORA_DIR/$TURBO_LORA_NAME" ]; then
-        ln -sf "$TURBO_LORA_NAME" "$LORA_DIR/anima-turbo-lora-v0.2.safetensors" 2>/dev/null || true
-        ln -sf "$TURBO_LORA_NAME" "$LORA_DIR/anima_turbo.safetensors" 2>/dev/null || true
-        echo "✅ Anima Turbo v1.1 LoRA downloaded and ready!"
-    fi
+if [ -f "/app/download_loras.sh" ]; then
+    /app/download_loras.sh "$LORA_DIR"
 fi
 
 export PYTHONUNBUFFERED=1

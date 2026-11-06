@@ -50,11 +50,11 @@ Production-grade, ultra-fast serverless worker powering SOTA anime generation wi
     "turbo": true,
     "loras": [
       {
-        "name": "dynamic_pose.safetensors",
+        "name": "dynamic_action_pose.safetensors",
         "strength": 0.8
       },
       {
-        "name": "retro_90s.safetensors",
+        "name": "retro_anime_90s.safetensors",
         "strength_model": 0.65,
         "strength_clip": 0.5
       }
@@ -64,6 +64,25 @@ Production-grade, ultra-fast serverless worker powering SOTA anime generation wi
   }
 }
 ```
+
+---
+
+## 🎨 Pre-baked Curated LoRA Collection (0ms Cold-Start)
+
+The worker container comes pre-baked with 10 high-quality SOTA LoRAs for the Pure-DiT Anima ecosystem. They can be invoked by their exact filename or convenient shorthand aliases:
+
+| Category | LoRA File | Shorthand Aliases | Description |
+| :--- | :--- | :--- | :--- |
+| **Speed & Anti-Slop** | `Anima_Turbo_v1.1.safetensors` | `turbo`, `anima_turbo` | 8–10 steps step distillation, removes AI slop & greasy skin textures. |
+| **Instant Speed** | `anima_turbo_4step_v3.safetensors` | `turbo_4step` | Ultra-fast 4-step generation (~1s inference). |
+| **Detail & Polish** | `anima-highres-aesthetic-boost.safetensors` | `aesthetic_boost`, `highres_boost` | Enhances micro-details, eye clarity, and clean lineart. |
+| **Anatomy** | `anima-rl-v0.1.safetensors` | `anatomy_fix`, `anima_rl` | RL-tuned for accurate hand geometry, fingers, and anatomy. |
+| **Lighting** | `anima-greg-rutkowski-style.safetensors` | `fantasy_art`, `dramatic_lighting` | Dramatic fantasy lighting, cinematic depth, and painterly backgrounds. |
+| **Modern Anime** | `noobai-style-anima-lora-final.safetensors` | `noobai_style`, `noobai` | Vibrant modern Danbooru anime aesthetic. |
+| **Retro 90s** | `SailorMoon-A1_v1.safetensors` | `retro_90s`, `retro_anime_90s` | Classic 90s vintage anime cel shading. |
+| **Action & Battle** | `DragonBall-A1_v1.safetensors` | `dynamic_action`, `dynamic_action_pose` | Intense battle pose, dynamic lines, and muscular tension. |
+| **90s OVA** | `Gunsmith-A1_v1.safetensors` | `vintage_ova`, `gunsmith_style` | Sharp mechanical details & 90s OVA lineart. |
+| **Bold Lineart** | `Helltaker-A1_v1.safetensors` | `sharp_lineart`, `helltaker_style` | High-contrast ink, crisp silhouettes, and sharp suits. |
 
 ---
 

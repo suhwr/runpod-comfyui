@@ -496,6 +496,7 @@ def build_workflow_from_inputs(inputs: Dict[str, Any]) -> Tuple[Dict[str, Any], 
     applied_loras = []
     missing_loras = []
     has_turbo_active = False
+    has_4step_active = False
 
     node_id_counter = 100
     for lora_entry in lora_list:
@@ -515,7 +516,10 @@ def build_workflow_from_inputs(inputs: Dict[str, Any]) -> Tuple[Dict[str, Any], 
         strength_model = float(lora_entry.get("strength_model", base_strength))
         strength_clip = float(lora_entry.get("strength_clip", base_strength))
 
-        if "turbo" in resolved_name.lower():
+        if "4step" in resolved_name.lower():
+            has_4step_active = True
+            has_turbo_active = True
+        elif "turbo" in resolved_name.lower():
             has_turbo_active = True
 
         node_id_counter += 1
@@ -543,9 +547,18 @@ def build_workflow_from_inputs(inputs: Dict[str, Any]) -> Tuple[Dict[str, Any], 
             "strength_clip": strength_clip,
         })
 
-    default_steps = 10 if has_turbo_active else 16
-    default_cfg = 1.4 if has_turbo_active else 2.1
-    default_sampler = "euler" if has_turbo_active else "er_sde"
+    if has_4step_active:
+        default_steps = 4
+        default_cfg = 1.2
+        default_sampler = "euler"
+    elif has_turbo_active:
+        default_steps = 10
+        default_cfg = 1.4
+        default_sampler = "euler"
+    else:
+        default_steps = 16
+        default_cfg = 2.1
+        default_sampler = "er_sde"
 
     width = int(inputs.get("width", 768))
     height = int(inputs.get("height", 1024))
