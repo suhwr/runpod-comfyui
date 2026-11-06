@@ -66,6 +66,15 @@ for VOL in "/runpod-volume" "/workspace" "/volume"; do
         fi
     done
 
+    # Auto-symlink all additional UNets/diffusion_models from volume (e.g. anima-base-v1.0.safetensors)
+    if [ -d "$VOL/models/diffusion_models" ]; then
+        for FPATH in "$VOL/models/diffusion_models"/*.safetensors "$VOL/models/diffusion_models"/*.pt; do
+            [ -f "$FPATH" ] || continue
+            MNAME="$(basename "$FPATH")"
+            ln -sf "$FPATH" "$DIFFUSION_DIR/$MNAME"
+        done
+    fi
+
     # Shared Qwen CLIP
     for FPATH in "$VOL/models/text_encoders/$NOVA_CLIP_NAME" "$VOL/models/$NOVA_CLIP_NAME" "$VOL/$NOVA_CLIP_NAME"; do
         if [ -f "$FPATH" ]; then

@@ -128,6 +128,149 @@ def resolve_lora_name(requested_name: str, available_loras: Optional[List[str]] 
 
     return None
 
+
+def get_comfy_available_unets() -> List[str]:
+    """Fetch exact list of UNets recognized by ComfyUI's UNETLoader or present on disk."""
+    try:
+        r = requests.get(f"http://{COMFY_HOST}/object_info/UNETLoader", timeout=2)
+        if r.status_code == 200:
+            unet_input = r.json().get("UNETLoader", {}).get("input", {}).get("required", {}).get("unet_name", [])
+            if unet_input and isinstance(unet_input[0], list) and unet_input[0]:
+                return unet_input[0]
+    except Exception as exc:
+        logger.debug(f"Could not query /object_info/UNETLoader ({exc}), falling back to disk...")
+
+    unet_dir = os.path.join(COMFY_DIR, "models", "diffusion_models")
+    if os.path.isdir(unet_dir):
+        try:
+            files = [f for f in os.listdir(unet_dir) if f.endswith((".safetensors", ".pt", ".bin"))]
+            if files:
+                return files
+        except Exception:
+            pass
+    return [NOVA_UNET_NAME, SILVERMOON_UNET_NAME]
+
+
+def resolve_unet_name(requested_name: str, available_unets: Optional[List[str]] = None) -> Tuple[str, bool]:
+    """
+    Resolve requested UNet name against available UNets in ComfyUI.
+    Returns (resolved_unet_filename, is_available).
+    If requested_name is not available, falls back safely to an existing UNet
+    so ComfyUI NEVER crashes with 'Value not in list' (400 rejection).
+    """
+    req_clean = str(requested_name).strip()
+    if available_unets is None:
+        available_unets = get_comfy_available_unets()
+
+    if not available_unets:
+        return req_clean or NOVA_UNET_NAME, True
+
+    candidates = [req_clean]
+    if not req_clean.endswith(".safetensors") and not req_clean.endswith(".pt"):
+        candidates.append(f"{req_clean}.safetensors")
+        candidates.append(f"{req_clean}.pt")
+
+    # 1. Exact match
+    for cand in candidates:
+        if cand in available_unets:
+            return cand, True
+
+    # 2. Case-insensitive exact match
+    for f in available_unets:
+        for cand in candidates:
+            if f.lower() == cand.lower():
+                return f, True
+
+    # 3. Substring / Stem match
+    for cand in candidates:
+        cand_stem = cand.replace(".safetensors", "").replace(".pt", "").lower()
+        if not cand_stem:
+            continue
+        for f in available_unets:
+            f_stem = f.replace(".safetensors", "").replace(".pt", "").lower()
+            if cand_stem in f_stem or f_stem in cand_stem:
+                return f, True
+
+    # 4. Keyword matching based on known models
+    cand_lower = req_clean.lower()
+    if "silver" in cand_lower or "moon" in cand_lower:
+        for f in available_unets:
+            if "silver" in f.lower():
+                return f, True
+    if "orange" in cand_lower:
+        for f in available_unets:
+            if "orange" in f.lower():
+                return f, True
+    if "nova" in cand_lower or "anime" in cand_lower:
+        for f in available_unets:
+            if "nova" in f.lower():
+                return f, True
+
+    # 5. Safe Fallback: Requested UNet is NOT available!
+    fallback = None
+    if NOVA_UNET_NAME in available_unets:
+        fallback = NOVA_UNET_NAME
+    elif SILVERMOON_UNET_NAME in available_unets:
+        fallback = SILVERMOON_UNET_NAME
+    else:
+        fallback = available_unets[0]
+
+    logger.warning(
+        f"⚠️ Requested UNet '{requested_name}' is NOT in ComfyUI available models {available_unets}. "
+        f"Gracefully falling back to '{fallback}' to prevent 400 prompt rejection."
+    )
+    return fallback, False
+
+
+def resolve_clip_name(requested_name: str) -> str:
+    """Ensure CLIP name exists in ComfyUI, else fall back safely to default."""
+    req_clean = str(requested_name).strip()
+    clip_dir = os.path.join(COMFY_DIR, "models", "text_encoders")
+    if os.path.isdir(clip_dir):
+        available = os.listdir(clip_dir)
+        if req_clean in available:
+            return req_clean
+        for f in available:
+            if req_clean.lower() in f.lower() or f.lower() in req_clean.lower():
+                return f
+        if NOVA_CLIP_NAME in available:
+            return NOVA_CLIP_NAME
+        if available:
+            return available[0]
+    return NOVA_CLIP_NAME
+
+
+def resolve_vae_name(requested_name: str) -> str:
+    """Ensure VAE name exists in ComfyUI, else fall back safely to default."""
+    req_clean = str(requested_name).strip()
+    vae_dir = os.path.join(COMFY_DIR, "models", "vae")
+    if os.path.isdir(vae_dir):
+        available = os.listdir(vae_dir)
+        if req_clean in available:
+            return req_clean
+        for f in available:
+            if req_clean.lower() in f.lower() or f.lower() in req_clean.lower():
+                return f
+        if NOVA_VAE_NAME in available:
+            return NOVA_VAE_NAME
+        if available:
+            return available[0]
+    return NOVA_VAE_NAME
+
+
+# Allowed samplers & schedulers in ComfyUI KSampler (Guards against invalid inputs)
+VALID_SAMPLERS = {
+    "euler", "euler_ancestral", "heun", "heunpp2", "dpm_2", "dpm_2_ancestral",
+    "lms", "dpm_fast", "dpm_adaptive", "dpmpp_2s_ancestral", "dpmpp_sde",
+    "dpmpp_sde_gpu", "dpmpp_2m", "dpmpp_2m_sde", "dpmpp_2m_sde_gpu",
+    "dpmpp_3m_sde", "dpmpp_3m_sde_gpu", "ddpm", "lcm", "ddim", "uni_pc",
+    "uni_pc_bh2", "er_sde"
+}
+
+VALID_SCHEDULERS = {
+    "normal", "karras", "exponential", "sgm_uniform", "simple", "ddim_uniform", "beta"
+}
+
 # Default quality tags (Tuned specifically for Pure 2D Anime & Anti-Slop Digital Art)
 NOVA_QUALITY_BOOSTER = (
     "score_9, score_8, score_7, very aesthetic, newest, absurdres, highres, "
@@ -409,36 +552,44 @@ def build_workflow_from_inputs(inputs: Dict[str, Any]) -> Tuple[Dict[str, Any], 
         raise ValueError("prompt is required")
 
     model_choice = str(inputs.get("model", "nova")).strip().lower()
+    raw_unet_req = inputs.get("unet_name", "")
 
-    # Determine UNet, display name, and quality booster
+    # Determine desired UNet target and display name
     if "silvermoon" in model_choice or "silver" in model_choice or "moon" in model_choice:
-        selected_unet = inputs.get("unet_name", SILVERMOON_UNET_NAME)
+        target_unet = raw_unet_req or SILVERMOON_UNET_NAME
         active_model_name = "SilvermoonMix Anima Evolved (2.9B)"
         quality_booster = SILVERMOON_QUALITY_BOOSTER
     elif "base" in model_choice or "circlestone" in model_choice:
-        selected_unet = inputs.get("unet_name", ANIMA_BASE_UNET_NAME)
+        target_unet = raw_unet_req or ANIMA_BASE_UNET_NAME
         active_model_name = "CircleStone Anima Base v1.0 (2.9B DiT)"
         quality_booster = NOVA_QUALITY_BOOSTER
     elif "anima_turbo" in model_choice:
-        selected_unet = inputs.get("unet_name", ANIMA_TURBO_UNET_NAME)
+        target_unet = raw_unet_req or ANIMA_TURBO_UNET_NAME
         active_model_name = "CircleStone Anima Turbo v1.1 (2.9B DiT)"
         quality_booster = NOVA_QUALITY_BOOSTER
     elif "orange" in model_choice or "2.5d" in model_choice:
-        orange_path = os.path.join(COMFY_DIR, "models", "diffusion_models", ORANGE_UNET_NAME)
-        if os.path.exists(orange_path):
-            selected_unet = inputs.get("unet_name", ORANGE_UNET_NAME)
-            active_model_name = "Nova Orange AM (2.9B)"
-            quality_booster = ORANGE_QUALITY_BOOSTER
-        else:
-            logger.info("Nova Orange AM UNet not found on disk, gracefully falling back to Nova Anime AM v6.0")
-            selected_unet = inputs.get("unet_name", NOVA_UNET_NAME)
-            active_model_name = "Nova Anime AM v6.0 (2.9B)"
-            quality_booster = NOVA_QUALITY_BOOSTER
+        target_unet = raw_unet_req or ORANGE_UNET_NAME
+        active_model_name = "Nova Orange AM (2.9B)"
+        quality_booster = ORANGE_QUALITY_BOOSTER
     else:
         # Default: Nova Anime AM v6.0 (2D Anime Flagship & Danbooru Master)
-        selected_unet = inputs.get("unet_name", NOVA_UNET_NAME)
+        target_unet = raw_unet_req or NOVA_UNET_NAME
         active_model_name = "Nova Anime AM v6.0 (2.9B)"
         quality_booster = NOVA_QUALITY_BOOSTER
+
+    # Resolve against actual models available in ComfyUI to guarantee NO 400 "Value not in list"
+    available_unets = get_comfy_available_unets()
+    logger.info(f"🔎 Available UNets recognized by ComfyUI: {available_unets}")
+    selected_unet, is_available = resolve_unet_name(target_unet, available_unets)
+
+    if not is_available:
+        # Requested model was not found in container, update active_model_name accurately
+        if "silver" in selected_unet.lower():
+            active_model_name = f"SilvermoonMix Anima Evolved (2.9B) [Auto-fallback from {target_unet}]"
+            quality_booster = SILVERMOON_QUALITY_BOOSTER
+        else:
+            active_model_name = f"Nova Anime AM v6.0 (2.9B) [Auto-fallback from {target_unet}]"
+            quality_booster = NOVA_QUALITY_BOOSTER
 
     seed = int(inputs.get("seed", -1))
     if seed <= 0:
@@ -451,6 +602,7 @@ def build_workflow_from_inputs(inputs: Dict[str, Any]) -> Tuple[Dict[str, Any], 
 
     # ─── Curated Presets with Dedicated 2D Boosters & Clean LoRA Stacks ────────
     preset = str(inputs.get("preset", "")).strip().lower()
+    use_turbo = bool(inputs.get("turbo", False) or inputs.get("anima_turbo", False))
     lora_list = []
     preset_cfg = None
 
@@ -662,16 +814,29 @@ def build_workflow_from_inputs(inputs: Dict[str, Any]) -> Tuple[Dict[str, Any], 
 
     width = int(inputs.get("width", 768))
     height = int(inputs.get("height", 1024))
+    width = max(256, min(2048, (width // 16) * 16))
+    height = max(256, min(2048, (height // 16) * 16))
+
     steps = int(inputs.get("steps", default_steps))
     steps = min(35, max(4, steps))
     cfg = float(inputs.get("cfg", default_cfg))
 
-    sampler = inputs.get("sampler", default_sampler)
-    scheduler = inputs.get("scheduler", "simple")
+    sampler = str(inputs.get("sampler", default_sampler)).strip().lower()
+    if sampler not in VALID_SAMPLERS:
+        logger.warning(f"⚠️ Sampler '{sampler}' not recognized. Falling back to '{default_sampler}'.")
+        sampler = default_sampler
+
+    scheduler = str(inputs.get("scheduler", "simple")).strip().lower()
+    if scheduler not in VALID_SCHEDULERS:
+        logger.warning(f"⚠️ Scheduler '{scheduler}' not recognized. Falling back to 'simple'.")
+        scheduler = "simple"
+
+    resolved_clip = resolve_clip_name(inputs.get("clip_name", NOVA_CLIP_NAME))
+    resolved_vae = resolve_vae_name(inputs.get("vae_name", NOVA_VAE_NAME))
 
     workflow["1"]["inputs"]["unet_name"] = selected_unet
-    workflow["2"]["inputs"]["clip_name"] = inputs.get("clip_name", NOVA_CLIP_NAME)
-    workflow["3"]["inputs"]["vae_name"] = inputs.get("vae_name", NOVA_VAE_NAME)
+    workflow["2"]["inputs"]["clip_name"] = resolved_clip
+    workflow["3"]["inputs"]["vae_name"] = resolved_vae
     workflow["4"]["inputs"]["text"] = positive_text
     workflow["4"]["inputs"]["clip"] = current_clip
     workflow["5"]["inputs"]["text"] = negative_text
