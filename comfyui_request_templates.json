@@ -76,6 +76,30 @@
   ],
 
   "examples": {
+    "0_sota_digital_artist_preset": {
+      "description": "PRESET TERBAIK (Anti-AI-Slop + Pengenalan Karakter Kuat): Cukup isi 'preset': 'digital_art'. Otomatis men-stack Anima Turbo + Aesthetic Boost + Anatomy Fix dengan rasio weight model/CLIP ideal. Hasil lineart tajam seperti ilustrator Pixiv/Twitter asli.",
+      "payload": {
+        "input": {
+          "prompt": "furina (genshin impact), ascot, top hat, blue coat, heterochromia, standing in fountain plaza, water ripples, delicate reflection",
+          "preset": "digital_art",
+          "width": 768,
+          "height": 1024
+        }
+      }
+    },
+
+    "0_modern_anime_pixiv_preset": {
+      "description": "Preset Modern Pixiv / NoobAI: Warna cerah, vibrant, dan lineart modern tajam tanpa kulit berminyak.",
+      "payload": {
+        "input": {
+          "prompt": "frieren (sousou no frieren), white hair, twintails, green eyes, elf, striped scarf, holding staff, magical aura, blue flower field",
+          "preset": "modern_anime",
+          "width": 832,
+          "height": 1216
+        }
+      }
+    },
+
     "1_recommended_turbo_anti_slop": {
       "description": "Paling simpel: Cepat (~1.5-2.5s), hemat credit RunPod, hasil 2D anime tajam & anti AI slop (otomatis Anima Turbo v1.1, 10 steps, CFG 1.4, sampler euler).",
       "payload": {
