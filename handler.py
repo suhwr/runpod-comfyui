@@ -84,7 +84,7 @@ ANIMA_TURBO_UNET_URL = os.environ.get(
     "https://huggingface.co/circlestone-labs/Anima/resolve/main/split_files/diffusion_models/anima-turbo-v1.1.safetensors"
 )
 
-DEFAULT_MODEL = os.environ.get("DEFAULT_MODEL", "anima_base")
+DEFAULT_MODEL = os.environ.get("DEFAULT_MODEL", "nova")
 
 NOVA_CLIP_NAME = os.environ.get("NOVA_CLIP_NAME", "qwen_3_06b_base.safetensors")
 NOVA_VAE_NAME = os.environ.get("NOVA_VAE_NAME", "qwen_image_vae.safetensors")
@@ -289,14 +289,18 @@ def ensure_model_on_disk(filename: str, url: str) -> bool:
     Ensure the requested UNet model exists on disk.
     If missing, download it on demand via aria2c/curl so user requests NEVER get falsely downgraded.
     """
-    dest_path = os.path.join(COMFY_DIR, "models", "diffusion_models", filename)
-    if os.path.isfile(dest_path) and os.path.getsize(dest_path) > 1_000_000_000:
-        return True
+    try:
+        dest_path = os.path.join(COMFY_DIR, "models", "diffusion_models", filename)
+        if os.path.isfile(dest_path) and os.path.getsize(dest_path) > 1_000_000_000:
+            return True
 
-    logger.info(f"⬇️ Model '{filename}' requested but not found locally. Initiating high-speed on-demand download from {url}...")
-    tmp_path = dest_path + ".tmp"
-    models_dir = os.path.join(COMFY_DIR, "models", "diffusion_models")
-    os.makedirs(models_dir, exist_ok=True)
+        logger.info(f"⬇️ Model '{filename}' requested but not found locally. Initiating high-speed on-demand download from {url}...")
+        tmp_path = dest_path + ".tmp"
+        models_dir = os.path.join(COMFY_DIR, "models", "diffusion_models")
+        os.makedirs(models_dir, exist_ok=True)
+    except Exception as exc:
+        logger.warning(f"Could not prepare destination directory for '{filename}': {exc}")
+        return False
 
     # 1. High-speed multi-connection aria2c download
     try:
@@ -328,7 +332,10 @@ def ensure_model_on_disk(filename: str, url: str) -> bool:
     except Exception as exc:
         logger.error(f"❌ Failed to download '{filename}': {exc}")
         if os.path.exists(tmp_path):
-            os.remove(tmp_path)
+            try:
+                os.remove(tmp_path)
+            except Exception:
+                pass
 
     return False
 
@@ -348,34 +355,45 @@ VALID_SCHEDULERS = {
 
 # Default quality tags (Tuned specifically for Pure 2D Anime & Anti-Slop Digital Art)
 NOVA_QUALITY_BOOSTER = (
-    "score_9, score_8, score_7, very aesthetic, newest, absurdres, highres, "
-    "2d, flat color, flat shading, cel shading, clean lineart, digital illustration, "
-    "drawing (medium), anime screencap, expressive eyes, delicate facial features, "
-    "detailed hair strands, vibrant anime coloring"
+    "masterpiece, best quality, score_9, score_8, score_7, year 2025, newest, absurdres, highres, "
+    "2d, pure 2d, clean lineart, sharp defined outlines, cel shading, flat color, "
+    "distinct hair clumps, expressive anime eyes, lively expression, delicate facial features, "
+    "vibrant anime coloring, digital illustration, sharp focus, crisp silhouette, drawing (medium)"
 )
 
 ORANGE_QUALITY_BOOSTER = (
-    "score_9, score_8, very aesthetic, newest, absurdres, highres, "
+    "masterpiece, best quality, score_9, score_8, year 2025, very aesthetic, newest, absurdres, highres, "
     "2d, digital illustration, clean lineart, expressive facial features, beautiful eyes, "
     "vibrant colors, harmonious composition"
 )
 
 SILVERMOON_QUALITY_BOOSTER = (
-    "score_9, score_8, very aesthetic, newest, absurdres, highres, "
+    "masterpiece, best quality, score_9, score_8, year 2025, very aesthetic, newest, absurdres, highres, "
     "2d, flat color, clean lineart, delicate brushwork, accurate hands, finely detailed fingers, "
     "expressive eyes, delicate facial features, harmonious colors, detailed digital illustration"
 )
 
 NEGATIVE_DEFAULT = (
-    "worst quality, low quality, early, old, score_1, score_2, score_3, score_4, score_5, score_6, monochrome, jpeg artifacts, "
-    "lowres, blurry, watermark, signature, username, error, "
-    "bad anatomy, bad hands, missing fingers, extra digits, extra fingers, fewer digits, fused fingers, "
-    "elongated fingers, long fingers, malformed fingers, mutated hands, poorly drawn hands, disfigured, "
-    "bad proportions, gross proportions, malformed limbs, extra limbs, missing limbs, floating limbs, "
-    "washed out, dull lighting, oversaturated, amateur, overexposed, blown out highlights, glaring light, glowing glare, "
+    # 1. Quality & Artifacts
+    "worst quality, low quality, early, old, score_1, score_2, score_3, score_4, score_5, score_6, "
+    "monochrome, jpeg artifacts, lowres, blurry, watermark, signature, username, error, text, logo, "
+    # 2. Anti-3D / Anti-2.5D / Anti-Airbrush / Anti-Slop Shading (Grease & Plastic Vinyl Skin)
     "2.5d, 3d, realistic, photorealistic, semi-realistic, cg, cgi, 3d render, unreal engine, octane render, "
-    "airbrushed, plastic, fake depth, ambient occlusion, raytracing, volumetric lighting, gradient shading, "
-    "realistic skin, shiny skin, oily skin, doll-like face, mannequin, glossy plastic, 3d model"
+    "airbrush, smooth shading, soft gradients, soft lighting, muddy colors, "
+    "plastic skin, shiny skin, oily skin, greasy skin, porcelain skin, doll face, mannequin, glossy plastic, 3d model, "
+    # 3. Anti-Anatomical Slop & Mutations
+    "bad anatomy, bad proportions, gross proportions, deformed, disfigured, "
+    "bad hands, poorly drawn hands, mutated hands, missing fingers, extra digits, extra fingers, fewer digits, "
+    "fused fingers, elongated fingers, long fingers, malformed fingers, crooked fingers, jointless limbs, "
+    "malformed limbs, extra limbs, missing limbs, floating limbs, "
+    # 4. Anti-Hair & Eye Slop (Dead Glass Eyes & Spaghetti Hair)
+    "glassy eyes, dead eyes, over-detailed eyes, chaotic pupil, pupil deformity, "
+    "floating hair strands, hair spaghetti, messy hair, melted hair, hair melting into clothing, "
+    # 5. Anti-Greeble & Compositional Noise
+    "floating straps, disconnected belts, random greebles, melting clothes, clothing merging with skin, "
+    "excessive bokeh, floating particles, visual noise, cluttered composition, background bleeding into subject, "
+    # 6. Lighting Slop
+    "washed out, dull lighting, oversaturated, amateur, overexposed, blown out highlights, glaring light, glowing glare"
 )
 
 NEGATIVE_BG_BLOCK = (
@@ -657,15 +675,24 @@ def build_workflow_from_inputs(inputs: Dict[str, Any]) -> Tuple[Dict[str, Any], 
         active_model_name = "Nova Anime AM v6.0 (2.9B)"
         quality_booster = NOVA_QUALITY_BOOSTER
     else:
-        # Default fallback to ANIMA_BASE_UNET_NAME
-        target_unet = raw_unet_req or ANIMA_BASE_UNET_NAME
-        target_url = ANIMA_BASE_UNET_URL
-        active_model_name = "CircleStone Anima Base v1.0 (2.9B DiT)"
+        # Default fallback to NOVA_UNET_NAME (Nova Anime AM v6.0 Flagship)
+        target_unet = raw_unet_req or NOVA_UNET_NAME
+        target_url = NOVA_UNET_URL
+        active_model_name = "Nova Anime AM v6.0 (2.9B)"
         quality_booster = NOVA_QUALITY_BOOSTER
 
-    # If target model is not present on disk, download it on demand!
-    target_path = os.path.join(COMFY_DIR, "models", "diffusion_models", target_unet)
-    if not os.path.isfile(target_path) and target_url:
+    # Resolve against actual models available in ComfyUI
+    available_unets = get_comfy_available_unets()
+    logger.info(f"🔎 Available UNets recognized by ComfyUI: {available_unets}")
+
+    # Check if target model is already available in ComfyUI
+    target_in_available = any(
+        target_unet.lower() == f.lower() or target_unet.replace(".safetensors", "").lower() in f.lower()
+        for f in available_unets
+    )
+
+    # Only trigger on-demand download if model is truly missing
+    if not target_in_available and target_url:
         logger.info(f"⚡ Target model '{target_unet}' missing locally. Triggering on-demand download...")
         downloaded = ensure_model_on_disk(target_unet, target_url)
         if downloaded:
@@ -674,10 +701,8 @@ def build_workflow_from_inputs(inputs: Dict[str, Any]) -> Tuple[Dict[str, Any], 
                 requests.post(f"http://{COMFY_HOST}/free", json={"unload_models": False, "free_memory": False}, timeout=2)
             except Exception:
                 pass
+            available_unets = get_comfy_available_unets()
 
-    # Resolve against actual models available in ComfyUI
-    available_unets = get_comfy_available_unets()
-    logger.info(f"🔎 Available UNets recognized by ComfyUI: {available_unets}")
     selected_unet, is_available = resolve_unet_name(target_unet, available_unets)
 
     if not is_available:
@@ -706,8 +731,8 @@ def build_workflow_from_inputs(inputs: Dict[str, Any]) -> Tuple[Dict[str, Any], 
 
     if preset in ("pure_2d", "flat_anime", "cel_shading", "flat_2d"):
         quality_booster = (
-            "score_9, score_8, 2d, pure 2d, flat color, flat shading, cel shading, "
-            "anime screencap, clean lineart, bold outline, traditional anime drawing, vibrant colors"
+            "masterpiece, best quality, score_9, score_8, year 2025, 2d, pure 2d, flat color, flat shading, cel shading, "
+            "anime screencap, sharp clean lineart, bold ink outlines, traditional anime drawing, zero gradients, vibrant colors, clean edges"
         )
         lora_list.append({"name": "Anima_Turbo_v1.1.safetensors", "strength": 0.90})
         lora_list.append({"name": "sharp_lineart", "strength": 0.50, "strength_model": 0.50, "strength_clip": 0.60})
@@ -715,9 +740,9 @@ def build_workflow_from_inputs(inputs: Dict[str, Any]) -> Tuple[Dict[str, Any], 
     elif preset in ("digital_art", "master_illustrator", "artist", "illustrator", "clean_anime"):
         # The SOTA Digital Artist recipe: Turbo + Mild Aesthetic Boost (clean 2D lines, NO heavy micro-detailers)
         quality_booster = (
-            "score_9, score_8, very aesthetic, newest, 2d, digital illustration, "
-            "clean lineart, cel shading, flat color, crisp outline, vibrant anime coloring, "
-            "expressive eyes, delicate facial features, high quality drawing"
+            "masterpiece, best quality, score_9, score_8, very aesthetic, year 2025, newest, 2d, digital illustration, "
+            "Japanese artist style, clean lineart, cel shading, crisp outlines, vibrant anime coloring, "
+            "expressive eyes, defined hair clumps, delicate facial features, professional artwork"
         )
         lora_list.append({"name": "Anima_Turbo_v1.1.safetensors", "strength": 0.90})
         lora_list.append({"name": "aesthetic_boost", "strength": 0.45, "strength_model": 0.40, "strength_clip": 0.50})
@@ -725,9 +750,9 @@ def build_workflow_from_inputs(inputs: Dict[str, Any]) -> Tuple[Dict[str, Any], 
     elif preset in ("sketch", "hand_drawn_sketch", "rough_sketch", "pencil_sketch"):
         # Authentic Hand-Drawn Sketch / Pro Draft (Yamimatsu7)
         quality_booster = (
-            "score_9, score_8, very aesthetic, sketch, graphite sketch, pencil drawing, "
-            "clean thin lineart, traditional media, paper texture, hatching, monochrome, "
-            "artist rough draft, expressive eyes"
+            "masterpiece, score_9, score_8, sketch, graphite sketch, pencil drawing, ink draft, "
+            "clean thin lineart, traditional media, paper texture, cross-hatching, monochrome, "
+            "illustrator rough draft, dynamic lines"
         )
         lora_list.append({"name": "Anima_Turbo_v1.1.safetensors", "strength": 0.85})
         lora_list.append({"name": "sketch_style", "strength": 0.85, "strength_model": 0.85, "strength_clip": 0.80})
@@ -735,8 +760,8 @@ def build_workflow_from_inputs(inputs: Dict[str, Any]) -> Tuple[Dict[str, Any], 
     elif preset in ("character_focus", "strong_character", "character"):
         # Maximum Character Recognition & Costume Fidelity (RL Prompt Alignment)
         quality_booster = (
-            "score_9, score_8, very aesthetic, newest, 2d, character sheet, sharp focus, "
-            "clean lineart, flat color, vibrant anime coloring, accurate character features, expressive face"
+            "masterpiece, best quality, score_9, score_8, very aesthetic, year 2025, newest, 2d, character focus, "
+            "official character art, accurate costume details, crisp lineart, cel shading, vibrant anime coloring, expressive face, sharp focal clarity"
         )
         lora_list.append({"name": "Anima_Turbo_v1.1.safetensors", "strength": 0.90})
         lora_list.append({"name": "anatomy_fix", "strength": 0.65, "strength_model": 0.60, "strength_clip": 0.70})
@@ -744,9 +769,9 @@ def build_workflow_from_inputs(inputs: Dict[str, Any]) -> Tuple[Dict[str, Any], 
     elif preset in ("watercolor_classic", "sugimori", "classic_art", "watercolor"):
         # Classic 90s Hand-Drawn Watercolor (Sugimori Style)
         quality_booster = (
-            "score_9, score_8, very aesthetic, ken sugimori (style), watercolor (medium), "
+            "masterpiece, score_9, score_8, ken sugimori (style), watercolor (medium), "
             "hand-drawn illustration, soft watercolor wash, delicate ink lines, paper texture, "
-            "traditional media, 1990s official art"
+            "traditional media, vintage official art"
         )
         lora_list.append({"name": "Anima_Turbo_v1.1.safetensors", "strength": 0.85})
         lora_list.append({"name": "watercolor_artist", "strength": 0.85, "strength_model": 0.80, "strength_clip": 0.85})
@@ -754,8 +779,8 @@ def build_workflow_from_inputs(inputs: Dict[str, Any]) -> Tuple[Dict[str, Any], 
     elif preset in ("modern_anime", "pixiv", "noobai"):
         # Modern Danbooru Vibrant Art (Pixiv / Twitter Style)
         quality_booster = (
-            "score_9, score_8, very aesthetic, newest, 2d, pixiv, digital illustration, "
-            "vivid colors, cel shading, crisp lineart, trending on pixiv, flat color, anime artwork"
+            "masterpiece, best quality, score_9, score_8, year 2025, newest, 2d, pixiv, digital illustration, "
+            "cel shading, vibrant pop colors, crisp lineart, trending on pixiv, flat anime color, modern anime artwork"
         )
         lora_list.append({"name": "Anima_Turbo_v1.1.safetensors", "strength": 0.90})
         lora_list.append({"name": "noobai_style", "strength": 0.75, "strength_model": 0.70, "strength_clip": 0.80})
@@ -763,8 +788,8 @@ def build_workflow_from_inputs(inputs: Dict[str, Any]) -> Tuple[Dict[str, Any], 
     elif preset in ("dynamic_action", "battle_pose", "action"):
         # Dynamic Combat & Martial Arts Fighting Poses
         quality_booster = (
-            "score_9, score_8, very aesthetic, 2d, dynamic action pose, fighting stance, "
-            "motion lines, intense perspective, crisp lineart, cel shading, energetic composition"
+            "masterpiece, best quality, score_9, score_8, 2d, dynamic action pose, fighting stance, "
+            "motion lines, perspective foreshortening, crisp ink lineart, cel shading, intense energetic composition"
         )
         lora_list.append({"name": "Anima_Turbo_v1.1.safetensors", "strength": 0.90})
         lora_list.append({"name": "dynamic_action", "strength": 0.75, "strength_model": 0.70, "strength_clip": 0.80})
@@ -772,9 +797,9 @@ def build_workflow_from_inputs(inputs: Dict[str, Any]) -> Tuple[Dict[str, Any], 
     elif preset in ("retro_90s", "retro", "vintage"):
         # Retro 90s Vintage Cel Animation (Sailor Moon style)
         quality_booster = (
-            "score_9, score_8, 1990s (style), retro anime, vintage anime cel, "
-            "flat color, clean lineart, anime screencap, traditional cel animation, "
-            "scanlines, nostalgic anime aesthetic, vibrant classic palette"
+            "masterpiece, score_9, score_8, 1990s (style), vintage anime, retro anime cel, "
+            "anime screencap, flat color, clean lineart, traditional cel animation, "
+            "nostalgic 90s TV anime palette, scanlines"
         )
         lora_list.append({"name": "Anima_Turbo_v1.1.safetensors", "strength": 0.85})
         lora_list.append({"name": "retro_90s", "strength": 0.80, "strength_model": 0.75, "strength_clip": 0.85})
@@ -782,7 +807,7 @@ def build_workflow_from_inputs(inputs: Dict[str, Any]) -> Tuple[Dict[str, Any], 
     elif preset in ("painterly", "fantasy", "cinematic"):
         # Painterly Concept Art & Brushwork
         quality_booster = (
-            "score_9, score_8, very aesthetic, painterly illustration, visible brush strokes, "
+            "masterpiece, score_9, score_8, very aesthetic, painterly illustration, visible brush strokes, "
             "traditional art media, expressive colors, artistic composition"
         )
         lora_list.append({"name": "Anima_Turbo_v1.1.safetensors", "strength": 0.90})
