@@ -26,17 +26,17 @@ Features **Pre-baked 14 SOTA LoRAs**, **Multi-LoRA Chaining Presets**, **Qwen 2.
 
 Instead of configuring multiple LoRA weights manually, you can pass `"preset"` to automatically activate a tailored multi-LoRA stack with tuned CFG, steps, and dedicated 2D quality boosters:
 
-| Preset Name | LoRA Stack Combinations | CFG / Steps | Visual Characteristics & Output Style |
+| Preset Name | LoRA Stack Combinations | CFG / Steps / Sampler | Visual Characteristics & Output Style |
 | :--- | :--- | :---: | :--- |
-| **`"pure_2d"`**<br>*(or `"flat_anime"` / `"cel_shading"`)* | `Anima Turbo` (0.90)<br>+ `Sharp Lineart` (0.50) | `1.15`<br>10 steps | **Pure 2D Anime Screencap:** 100% flat cel-shading, zero 3D spherical gradients, bold crisp lineart, completely free of AI-slop textures. |
-| **`"master_illustrator"`**<br>*(or `"digital_art"`)* | `Anima Turbo` (0.90)<br>+ `Aesthetic Boost` (0.45) | `1.25`<br>10 steps | **The SOTA Digital Artist Recipe:** Clean 2D Japanese digital artist illustration (Pixiv/Twitter). Harmonious flat colors, clear expressive eyes, clean lines. |
-| **`"hand_drawn_sketch"`**<br>*(or `"sketch"`)* | `Anima Turbo` (0.85)<br>+ `Sketch Style (Yamimatsu7)` (0.85) | `1.20`<br>10 steps | **Authentic Hand-Drawn Sketch:** Draft lines, delicate pencil hatching, thin ink lineart, and artist sketchbook drawing board aesthetic. |
-| **`"character_focus"`**<br>*(or `"strong_character"`)* | `Anima Turbo` (0.90)<br>+ `Anatomy Fix` (0.65; RL tuned) | `1.25`<br>10 steps | **Maximum Character Recognition (98%+):** Boosted CLIP text weights ensure complex character outfits, hair accessories, and canonical features adhere strictly to the prompt without concept bleed. |
-| **`"watercolor_classic"`**<br>*(or `"sugimori"`)* | `Anima Turbo` (0.85)<br>+ `Watercolor Artist (Sugimori)` (0.85) | `1.20`<br>10 steps | **Classic 90s Hand-Drawn Watercolor:** Soft watercolor washes, paper grain texture, and delicate outline art (legendary Ken Sugimori aesthetic). |
-| **`"modern_anime"`**<br>*(or `"pixiv"` / `"noobai"`)* | `Anima Turbo` (0.90)<br>+ `NoobAI Modern Style` (0.75) | `1.25`<br>10 steps | **Modern Danbooru Vibrant Art:** Vibrant pop colors, high contrast, clean modern cel shading illustration. |
-| **`"retro_90s"`**<br>*(or `"vintage"`)* | `Anima Turbo` (0.85)<br>+ `Retro 90s Cel (Sailor Moon)` (0.80) | `1.20`<br>10 steps | **Classic 90s Cel Animation:** Nostalgic hand-painted anime cel shading, film grain, and 90s TV anime palette. |
-| **`"dynamic_action"`**<br>*(or `"battle_pose"`)* | `Anima Turbo` (0.90)<br>+ `Dynamic Action (DragonBall)` (0.75) | `1.25`<br>10 steps | **Dynamic Combat & Action:** Martial arts fighting stances, dynamic motion lines, and intense perspective lineart. |
-| **`"painterly"`**<br>*(or `"fantasy"`)* | `Anima Turbo` (0.90)<br>+ `Fantasy Art (Rutkowski)` (0.60) | `1.30`<br>12 steps | **Painterly Fantasy Concept Art:** Expressive digital brushwork, traditional art media texture, and rich artistic composition. |
+| **`"pure_2d"`**<br>*(or `"flat_anime"` / `"cel_shading"`)* | `Anima Turbo` (0.90)<br>+ `Sharp Lineart` (0.50)<br>+ `Anatomy Fix` (0.50) | `1.20`<br>10 steps<br>`er_sde` + `simple` | **Pure 2D Anime Screencap:** 100% flat cel-shading, zero 3D spherical gradients, bold crisp lineart, natural anatomy, and detailed scenery background. |
+| **`"master_illustrator"`**<br>*(or `"digital_art"`)* | `Anima Turbo` (0.90)<br>+ `Aesthetic Boost` (0.45)<br>+ `Anatomy Fix` (0.55)<br>+ `Cloth & Hair Detailer` (0.40) | `1.25`<br>10 steps<br>`er_sde` + `simple` | **The SOTA Digital Artist Recipe:** Clean 2D Japanese digital artist illustration (Pixiv/Twitter). Harmonious flat colors, natural body curves, clear expressive eyes, rich scenic environment. |
+| **`"hand_drawn_sketch"`**<br>*(or `"sketch"`)* | `Anima Turbo` (0.85)<br>+ `Sketch Style (Yamimatsu7)` (0.85)<br>+ `Anatomy Fix` (0.45) | `1.20`<br>10 steps<br>`er_sde` + `simple` | **Authentic Hand-Drawn Sketch:** Draft lines, delicate pencil hatching, thin ink lineart, and artist sketchbook drawing board aesthetic. |
+| **`"character_focus"`**<br>*(or `"strong_character"`)* | `Anima Turbo` (0.90)<br>+ `Anatomy Fix` (0.70; RL tuned)<br>+ `Cloth & Hair Detailer` (0.40) | `1.25`<br>10 steps<br>`er_sde` + `simple` | **Maximum Character Recognition (98%+):** Boosted CLIP text weights ensure complex character outfits, hair accessories, and canonical features adhere strictly to the prompt without blanking the background. |
+| **`"watercolor_classic"`**<br>*(or `"sugimori"`)* | `Anima Turbo` (0.85)<br>+ `Watercolor Artist (Sugimori)` (0.85)<br>+ `Anatomy Fix` (0.45) | `1.20`<br>10 steps<br>`er_sde` + `simple` | **Classic 90s Hand-Drawn Watercolor:** Soft watercolor washes, paper grain texture, and delicate outline art (legendary Ken Sugimori aesthetic). |
+| **`"modern_anime"`**<br>*(or `"pixiv"` / `"noobai"`)* | `Anima Turbo` (0.90)<br>+ `NoobAI Modern Style` (0.75)<br>+ `Anatomy Fix` (0.50) | `1.25`<br>10 steps<br>`er_sde` + `simple` | **Modern Danbooru Vibrant Art:** Vibrant pop colors, high contrast, clean modern cel shading illustration, beautiful background scenery. |
+| **`"retro_90s"`**<br>*(or `"vintage"`)* | `Anima Turbo` (0.85)<br>+ `Retro 90s Cel (Sailor Moon)` (0.80)<br>+ `Anatomy Fix` (0.45) | `1.20`<br>10 steps<br>`er_sde` + `simple` | **Classic 90s Cel Animation:** Nostalgic hand-painted anime cel shading, film grain, vintage anime scenery, and 90s TV anime palette. |
+| **`"dynamic_action"`**<br>*(or `"battle_pose"`)* | `Anima Turbo` (0.90)<br>+ `Dynamic Action (DragonBall)` (0.75)<br>+ `Anatomy Fix` (0.60) | `1.25`<br>10 steps<br>`er_sde` + `simple` | **Dynamic Combat & Action:** Martial arts fighting stances, dynamic motion lines, powerful natural muscle tension, and cinematic battlefield background. |
+| **`"painterly"`**<br>*(or `"fantasy"`)* | `Anima Turbo` (0.90)<br>+ `Fantasy Art (Rutkowski)` (0.60)<br>+ `Anatomy Fix` (0.50) | `1.30`<br>12 steps<br>`er_sde` + `simple` | **Painterly Fantasy Concept Art:** Expressive digital brushwork, traditional art media texture, and rich atmospheric scenery. |
 
 ---
 
@@ -76,10 +76,10 @@ All 14 LoRAs are downloaded during `docker build` into `/app/ComfyUI/models/lora
 | `negative_prompt` | `string` | `""` | Optional negative prompt overrides. |
 | `width` | `integer` | `768` | Width in pixels (`768`, `832`, `1024`). |
 | `height` | `integer` | `1024` | Height in pixels (`1024`, `1216`). |
-| `steps` | `integer` | *(Auto)* | Steps (`10` for Turbo/presets, `4` for 4step, `16` for normal). |
-| `cfg` | `float` | *(Auto)* | Guidance scale (`1.25 – 1.4` for presets, `2.1` for normal). |
-| `sampler` | `string` | *(Auto)* | Sampler name (`euler` for Turbo/presets, `er_sde` for normal). |
-| `scheduler` | `string` | `"simple"` | Scheduler name (`simple`, `normal`, `karras`). |
+| `steps` | `integer` | *(Auto)* | Steps (`10` for Turbo/presets, `4` for 4step, `20` for normal). |
+| `cfg` | `float` | *(Auto)* | Guidance scale (`1.20 – 1.30` for presets, `3.5` for normal non-turbo). |
+| `sampler` | `string` | `"er_sde"` | Native sampler name (`er_sde` default for high-quality natural anatomy stochastic sampling; `euler` for 4-step). |
+| `scheduler` | `string` | `"simple"` | Scheduler name (`simple` default, `normal`, `karras`). |
 | `seed` | `integer` | `-1` | Random seed (`-1` for randomized generation). |
 
 ---

@@ -26,83 +26,92 @@
     {
       "name": "pure_2d",
       "aliases": ["flat_anime", "cel_shading", "flat_2d"],
-      "stacked_loras": ["Anima Turbo v1.1", "Sharp High-Contrast Lineart"],
-      "recommended_cfg": 1.15,
+      "stacked_loras": ["Anima Turbo v1.1", "Sharp High-Contrast Lineart", "RL Anatomy & Hand Fix"],
+      "recommended_cfg": 1.20,
       "recommended_steps": 10,
-      "sampler": "euler",
-      "description": "2D MURNI / ZERO-SLOP: Cel-shading anime murni tanpa gradasi bola 3D, tanpa kulit berminyak, garis lineart tegas khas anime screencap TV & manga."
+      "sampler": "er_sde",
+      "scheduler": "simple",
+      "description": "2D MURNI / ZERO-SLOP: Cel-shading anime murni tanpa gradasi bola 3D, tanpa kulit berminyak, garis lineart tegas khas anime screencap TV & manga dengan anatomi presisi."
     },
     {
       "name": "master_illustrator",
       "aliases": ["digital_art", "artist", "illustrator", "clean_anime"],
-      "stacked_loras": ["Anima Turbo v1.1", "Highres Aesthetic Boost (Mild)"],
+      "stacked_loras": ["Anima Turbo v1.1", "Highres Aesthetic Boost (Mild)", "RL Anatomy & Hand Fix", "Cloth & Hair Detailer"],
       "recommended_cfg": 1.25,
       "recommended_steps": 10,
-      "sampler": "euler",
-      "description": "RESEP UTAMA DIGITAL ARTIST: Gambar ilustrator profesional Jepang (Pixiv/Twitter SOTA). Lineart jernih, warna rata harmonis, mata hidup, tanpa over-baking mikro-tekstur."
+      "sampler": "er_sde",
+      "scheduler": "simple",
+      "description": "RESEP UTAMA DIGITAL ARTIST: Gambar ilustrator profesional Jepang (Pixiv/Twitter SOTA). Lineart jernih, lekukan tubuh & anatomi natural, warna rata harmonis, mata hidup, dan background pemandangan detail."
     },
     {
       "name": "hand_drawn_sketch",
       "aliases": ["sketch", "rough_sketch", "pencil_sketch"],
-      "stacked_loras": ["Anima Turbo v1.1", "Sketch Style (Yamimatsu7)"],
+      "stacked_loras": ["Anima Turbo v1.1", "Sketch Style (Yamimatsu7)", "RL Anatomy & Hand Fix"],
       "recommended_cfg": 1.20,
       "recommended_steps": 10,
-      "sampler": "euler",
-      "description": "Gaya sketsa tangan otentik: Garis pensil/tinta tipis, arsir manual (hatching), draft ilustrator di kertas sketsa fisik."
+      "sampler": "er_sde",
+      "scheduler": "simple",
+      "description": "Gaya sketsa tangan otentik: Garis pensil/tinta tipis, arsir manual (hatching), draft ilustrator di kertas sketsa fisik dengan proporsi anatomi terarah."
     },
     {
       "name": "character_focus",
       "aliases": ["strong_character", "character"],
-      "stacked_loras": ["Anima Turbo v1.1", "RL Anatomy & Costume Alignment"],
+      "stacked_loras": ["Anima Turbo v1.1", "RL Anatomy & Costume Alignment", "Cloth & Hair Detailer"],
       "recommended_cfg": 1.25,
       "recommended_steps": 10,
-      "sampler": "euler",
-      "description": "Pengenalan karakter paling kuat (adherence 98%+). Ornamen rambut, kostum resmi anime/game, dan fitur karakter terkunci presisi tanpa konsep bocor."
+      "sampler": "er_sde",
+      "scheduler": "simple",
+      "description": "Pengenalan karakter paling kuat (adherence 98%+). Ornamen rambut, kostum resmi anime/game, dan fitur karakter terkunci presisi dengan latar belakang pemandangan yang tetap terintegrasi rapi."
     },
     {
       "name": "watercolor_classic",
       "aliases": ["sugimori", "classic_art", "watercolor"],
-      "stacked_loras": ["Anima Turbo v1.1", "Watercolor Artist (Sugimori Ken)"],
+      "stacked_loras": ["Anima Turbo v1.1", "Watercolor Artist (Sugimori Ken)", "RL Anatomy & Hand Fix"],
       "recommended_cfg": 1.20,
       "recommended_steps": 10,
-      "sampler": "euler",
+      "sampler": "er_sde",
+      "scheduler": "simple",
       "description": "Gaya ilustrasi cat air klasik era 90-an: Sapuan watercolor lembut, tekstur kertas manual, dan outline pensil halus (gaya Ken Sugimori)."
     },
     {
       "name": "modern_anime",
       "aliases": ["pixiv", "noobai"],
-      "stacked_loras": ["Anima Turbo v1.1", "NoobAI Modern Style"],
+      "stacked_loras": ["Anima Turbo v1.1", "NoobAI Modern Style", "RL Anatomy & Hand Fix"],
       "recommended_cfg": 1.25,
       "recommended_steps": 10,
-      "sampler": "euler",
-      "description": "Gaya modern Danbooru vibrant yang tajam, warna pop cerah, dan cel shading bersih."
+      "sampler": "er_sde",
+      "scheduler": "simple",
+      "description": "Gaya modern Danbooru vibrant yang tajam, warna pop cerah, dan cel shading bersih dengan latar pemandangan detail."
     },
     {
       "name": "retro_90s",
       "aliases": ["retro", "vintage"],
-      "stacked_loras": ["Anima Turbo v1.1", "Retro 90s Cel (Sailor Moon)"],
+      "stacked_loras": ["Anima Turbo v1.1", "Retro 90s Cel (Sailor Moon)", "RL Anatomy & Hand Fix"],
       "recommended_cfg": 1.20,
       "recommended_steps": 10,
-      "sampler": "euler",
+      "sampler": "er_sde",
+      "scheduler": "simple",
       "description": "Cel-shading anime jadul era 90-an tanpa efek plastik: Warna analog bernostalgia dan goresan animasi TV klasik."
     },
     {
       "name": "dynamic_action",
       "aliases": ["battle_pose", "action"],
-      "stacked_loras": ["Anima Turbo v1.1", "Dynamic Action Pose (DragonBall)"],
+      "stacked_loras": ["Anima Turbo v1.1", "Dynamic Action Pose (DragonBall)", "RL Anatomy & Hand Fix"],
       "recommended_cfg": 1.25,
       "recommended_steps": 10,
-      "sampler": "euler",
-      "description": "Pose bertarung dinamis, motion lines aksi intens, dan siluet tubuh berenergi tinggi dengan lineart bersih."
+      "sampler": "er_sde",
+      "scheduler": "simple",
+      "description": "Pose bertarung dinamis, motion lines aksi intens, dan lekukan tubuh bertenaga dengan lineart bersih di medan tempur sinematik."
     },
     {
       "name": "painterly",
       "aliases": ["fantasy", "cinematic"],
-      "stacked_loras": ["Anima Turbo v1.1", "Fantasy Concept Art (Greg Rutkowski)"],
+      "stacked_loras": ["Anima Turbo v1.1", "Fantasy Concept Art (Greg Rutkowski)", "RL Anatomy & Hand Fix"],
       "recommended_cfg": 1.30,
       "recommended_steps": 12,
-      "sampler": "euler",
-      "description": "Lukisan ilustrasi konsep artistik dengan goresan kuas kuas ekspresif dan palet fantasi."
+      "sampler": "er_sde",
+      "scheduler": "simple",
+      "description": "Lukisan ilustrasi konsep artistik dengan goresan kuas ekspresif dan pemandangan atmosferis fantasi yang mendalam."
     }
   ],
 

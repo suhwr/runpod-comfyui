@@ -353,24 +353,27 @@ VALID_SCHEDULERS = {
     "normal", "karras", "exponential", "sgm_uniform", "simple", "ddim_uniform", "beta"
 }
 
-# Default quality tags (Tuned specifically for Pure 2D Anime & Anti-Slop Digital Art)
+# Default quality tags (Tuned specifically for Pure 2D Anime, Anti-Slop, Natural Anatomy & Rich Scenery)
 NOVA_QUALITY_BOOSTER = (
     "masterpiece, best quality, score_9, score_8, score_7, year 2025, newest, absurdres, highres, "
-    "2d, pure 2d, clean lineart, sharp defined outlines, cel shading, flat color, "
+    "2d, clean lineart, sharp defined outlines, cel shading, flat color, "
+    "accurate anatomy, natural body curves, well-proportioned limbs, "
     "distinct hair clumps, expressive anime eyes, lively expression, delicate facial features, "
-    "vibrant anime coloring, digital illustration, sharp focus, crisp silhouette, drawing (medium)"
+    "vibrant anime coloring, detailed scenery, beautiful background, scenic environment, "
+    "atmospheric lighting, digital illustration"
 )
 
 ORANGE_QUALITY_BOOSTER = (
     "masterpiece, best quality, score_9, score_8, year 2025, very aesthetic, newest, absurdres, highres, "
-    "2d, digital illustration, clean lineart, expressive facial features, beautiful eyes, "
-    "vibrant colors, harmonious composition"
+    "2d, digital illustration, clean lineart, accurate anatomy, natural body curves, well-proportioned limbs, "
+    "expressive facial features, beautiful eyes, vibrant colors, detailed scenery, scenic background, harmonious composition"
 )
 
 SILVERMOON_QUALITY_BOOSTER = (
     "masterpiece, best quality, score_9, score_8, year 2025, very aesthetic, newest, absurdres, highres, "
     "2d, flat color, clean lineart, delicate brushwork, accurate hands, finely detailed fingers, "
-    "expressive eyes, delicate facial features, harmonious colors, detailed digital illustration"
+    "accurate anatomy, natural body curves, well-proportioned limbs, "
+    "expressive eyes, delicate facial features, harmonious colors, detailed scenery, beautiful atmospheric background, detailed digital illustration"
 )
 
 NEGATIVE_DEFAULT = (
@@ -379,19 +382,19 @@ NEGATIVE_DEFAULT = (
     "monochrome, jpeg artifacts, lowres, blurry, watermark, signature, username, error, text, logo, "
     # 2. Anti-3D / Anti-2.5D / Anti-Airbrush / Anti-Slop Shading (Grease & Plastic Vinyl Skin)
     "2.5d, 3d, realistic, photorealistic, semi-realistic, cg, cgi, 3d render, unreal engine, octane render, "
-    "airbrush, smooth shading, soft gradients, soft lighting, muddy colors, "
+    "airbrush, smooth shading, soft gradients, volumetric lighting, raytracing, ambient occlusion, flat 3d shading, muddy colors, "
     "plastic skin, shiny skin, oily skin, greasy skin, porcelain skin, doll face, mannequin, glossy plastic, 3d model, "
-    # 3. Anti-Anatomical Slop & Mutations
-    "bad anatomy, bad proportions, gross proportions, deformed, disfigured, "
+    # 3. Anti-Anatomical Slop, Unnatural Curves & Mutations
+    "bad anatomy, bad proportions, gross proportions, deformed, disfigured, unnatural spine, awkward pose, rubber limbs, stiff pose, "
     "bad hands, poorly drawn hands, mutated hands, missing fingers, extra digits, extra fingers, fewer digits, "
     "fused fingers, elongated fingers, long fingers, malformed fingers, crooked fingers, jointless limbs, "
     "malformed limbs, extra limbs, missing limbs, floating limbs, "
     # 4. Anti-Hair & Eye Slop (Dead Glass Eyes & Spaghetti Hair)
     "glassy eyes, dead eyes, over-detailed eyes, chaotic pupil, pupil deformity, "
     "floating hair strands, hair spaghetti, messy hair, melted hair, hair melting into clothing, "
-    # 5. Anti-Greeble & Compositional Noise
+    # 5. Anti-Greeble & Compositional Noise (NO background-bleeding penalty so scenery renders freely)
     "floating straps, disconnected belts, random greebles, melting clothes, clothing merging with skin, "
-    "excessive bokeh, floating particles, visual noise, cluttered composition, background bleeding into subject, "
+    "excessive bokeh, floating particles, visual noise, "
     # 6. Lighting Slop
     "washed out, dull lighting, oversaturated, amateur, overexposed, blown out highlights, glaring light, glowing glare"
 )
@@ -732,92 +735,132 @@ def build_workflow_from_inputs(inputs: Dict[str, Any]) -> Tuple[Dict[str, Any], 
     if preset in ("pure_2d", "flat_anime", "cel_shading", "flat_2d"):
         quality_booster = (
             "masterpiece, best quality, score_9, score_8, year 2025, 2d, pure 2d, flat color, flat shading, cel shading, "
-            "anime screencap, sharp clean lineart, bold ink outlines, traditional anime drawing, zero gradients, vibrant colors, clean edges"
+            "anime screencap, sharp clean lineart, bold ink outlines, traditional anime drawing, zero gradients, vibrant colors, clean edges, "
+            "accurate anatomy, natural body curves, detailed scenery, beautiful scenic background"
         )
         lora_list.append({"name": "Anima_Turbo_v1.1.safetensors", "strength": 0.90})
         lora_list.append({"name": "sharp_lineart", "strength": 0.50, "strength_model": 0.50, "strength_clip": 0.60})
-        preset_cfg = 1.15
+        lora_list.append({"name": "anatomy_fix", "strength": 0.50, "strength_model": 0.45, "strength_clip": 0.55})
+        preset_cfg = 1.20
     elif preset in ("digital_art", "master_illustrator", "artist", "illustrator", "clean_anime"):
-        # The SOTA Digital Artist recipe: Turbo + Mild Aesthetic Boost (clean 2D lines, NO heavy micro-detailers)
+        # The SOTA Digital Artist recipe: Turbo + Mild Aesthetic Boost + Anatomy Fix + Cloth/Hair Detailer
         quality_booster = (
             "masterpiece, best quality, score_9, score_8, very aesthetic, year 2025, newest, 2d, digital illustration, "
             "Japanese artist style, clean lineart, cel shading, crisp outlines, vibrant anime coloring, "
-            "expressive eyes, defined hair clumps, delicate facial features, professional artwork"
+            "accurate anatomy, natural body curves, well-proportioned limbs, expressive eyes, defined hair clumps, delicate facial features, "
+            "professional artwork, detailed scenery, beautiful background, atmospheric lighting"
         )
         lora_list.append({"name": "Anima_Turbo_v1.1.safetensors", "strength": 0.90})
         lora_list.append({"name": "aesthetic_boost", "strength": 0.45, "strength_model": 0.40, "strength_clip": 0.50})
+        lora_list.append({"name": "anatomy_fix", "strength": 0.55, "strength_model": 0.50, "strength_clip": 0.60})
+        lora_list.append({"name": "cloth_and_hair_detailer", "strength": 0.40, "strength_model": 0.35, "strength_clip": 0.45})
         preset_cfg = 1.25
     elif preset in ("sketch", "hand_drawn_sketch", "rough_sketch", "pencil_sketch"):
         # Authentic Hand-Drawn Sketch / Pro Draft (Yamimatsu7)
         quality_booster = (
             "masterpiece, score_9, score_8, sketch, graphite sketch, pencil drawing, ink draft, "
             "clean thin lineart, traditional media, paper texture, cross-hatching, monochrome, "
-            "illustrator rough draft, dynamic lines"
+            "illustrator rough draft, dynamic lines, accurate anatomy, natural body curves"
         )
         lora_list.append({"name": "Anima_Turbo_v1.1.safetensors", "strength": 0.85})
         lora_list.append({"name": "sketch_style", "strength": 0.85, "strength_model": 0.85, "strength_clip": 0.80})
+        lora_list.append({"name": "anatomy_fix", "strength": 0.45, "strength_model": 0.40, "strength_clip": 0.50})
         preset_cfg = 1.20
     elif preset in ("character_focus", "strong_character", "character"):
         # Maximum Character Recognition & Costume Fidelity (RL Prompt Alignment)
         quality_booster = (
             "masterpiece, best quality, score_9, score_8, very aesthetic, year 2025, newest, 2d, character focus, "
-            "official character art, accurate costume details, crisp lineart, cel shading, vibrant anime coloring, expressive face, sharp focal clarity"
+            "official character art, accurate costume details, crisp lineart, cel shading, vibrant anime coloring, "
+            "accurate anatomy, natural body curves, well-proportioned limbs, expressive face, sharp focal clarity, "
+            "detailed scenery, scenic background"
         )
         lora_list.append({"name": "Anima_Turbo_v1.1.safetensors", "strength": 0.90})
-        lora_list.append({"name": "anatomy_fix", "strength": 0.65, "strength_model": 0.60, "strength_clip": 0.70})
+        lora_list.append({"name": "anatomy_fix", "strength": 0.70, "strength_model": 0.65, "strength_clip": 0.75})
+        lora_list.append({"name": "cloth_and_hair_detailer", "strength": 0.40, "strength_model": 0.35, "strength_clip": 0.45})
         preset_cfg = 1.25
     elif preset in ("watercolor_classic", "sugimori", "classic_art", "watercolor"):
         # Classic 90s Hand-Drawn Watercolor (Sugimori Style)
         quality_booster = (
             "masterpiece, score_9, score_8, ken sugimori (style), watercolor (medium), "
             "hand-drawn illustration, soft watercolor wash, delicate ink lines, paper texture, "
-            "traditional media, vintage official art"
+            "traditional media, vintage official art, accurate anatomy, natural body curves, detailed scenery, scenic background"
         )
         lora_list.append({"name": "Anima_Turbo_v1.1.safetensors", "strength": 0.85})
         lora_list.append({"name": "watercolor_artist", "strength": 0.85, "strength_model": 0.80, "strength_clip": 0.85})
+        lora_list.append({"name": "anatomy_fix", "strength": 0.45, "strength_model": 0.40, "strength_clip": 0.50})
         preset_cfg = 1.20
     elif preset in ("modern_anime", "pixiv", "noobai"):
         # Modern Danbooru Vibrant Art (Pixiv / Twitter Style)
         quality_booster = (
             "masterpiece, best quality, score_9, score_8, year 2025, newest, 2d, pixiv, digital illustration, "
-            "cel shading, vibrant pop colors, crisp lineart, trending on pixiv, flat anime color, modern anime artwork"
+            "cel shading, vibrant pop colors, crisp lineart, trending on pixiv, flat anime color, "
+            "accurate anatomy, natural body curves, detailed scenery, beautiful background, atmospheric lighting, modern anime artwork"
         )
         lora_list.append({"name": "Anima_Turbo_v1.1.safetensors", "strength": 0.90})
         lora_list.append({"name": "noobai_style", "strength": 0.75, "strength_model": 0.70, "strength_clip": 0.80})
+        lora_list.append({"name": "anatomy_fix", "strength": 0.50, "strength_model": 0.45, "strength_clip": 0.55})
         preset_cfg = 1.25
     elif preset in ("dynamic_action", "battle_pose", "action"):
         # Dynamic Combat & Martial Arts Fighting Poses
         quality_booster = (
             "masterpiece, best quality, score_9, score_8, 2d, dynamic action pose, fighting stance, "
-            "motion lines, perspective foreshortening, crisp ink lineart, cel shading, intense energetic composition"
+            "motion lines, perspective foreshortening, crisp ink lineart, cel shading, intense energetic composition, "
+            "accurate anatomy, natural body curves, dynamic anatomy, dynamic background, cinematic battlefield, scenic environment"
         )
         lora_list.append({"name": "Anima_Turbo_v1.1.safetensors", "strength": 0.90})
         lora_list.append({"name": "dynamic_action", "strength": 0.75, "strength_model": 0.70, "strength_clip": 0.80})
+        lora_list.append({"name": "anatomy_fix", "strength": 0.60, "strength_model": 0.55, "strength_clip": 0.65})
         preset_cfg = 1.25
     elif preset in ("retro_90s", "retro", "vintage"):
         # Retro 90s Vintage Cel Animation (Sailor Moon style)
         quality_booster = (
             "masterpiece, score_9, score_8, 1990s (style), vintage anime, retro anime cel, "
             "anime screencap, flat color, clean lineart, traditional cel animation, "
-            "nostalgic 90s TV anime palette, scanlines"
+            "nostalgic 90s TV anime palette, scanlines, accurate anatomy, natural body curves, vintage anime scenery, scenic background"
         )
         lora_list.append({"name": "Anima_Turbo_v1.1.safetensors", "strength": 0.85})
         lora_list.append({"name": "retro_90s", "strength": 0.80, "strength_model": 0.75, "strength_clip": 0.85})
+        lora_list.append({"name": "anatomy_fix", "strength": 0.45, "strength_model": 0.40, "strength_clip": 0.50})
         preset_cfg = 1.20
     elif preset in ("painterly", "fantasy", "cinematic"):
         # Painterly Concept Art & Brushwork
         quality_booster = (
             "masterpiece, score_9, score_8, very aesthetic, painterly illustration, visible brush strokes, "
-            "traditional art media, expressive colors, artistic composition"
+            "traditional art media, expressive colors, artistic composition, "
+            "accurate anatomy, natural body curves, detailed scenery, beautiful atmospheric landscape, scenic environment"
         )
         lora_list.append({"name": "Anima_Turbo_v1.1.safetensors", "strength": 0.90})
         lora_list.append({"name": "fantasy_art", "strength": 0.60, "strength_model": 0.55, "strength_clip": 0.65})
+        lora_list.append({"name": "anatomy_fix", "strength": 0.50, "strength_model": 0.45, "strength_clip": 0.55})
         preset_cfg = 1.30
     elif use_turbo:
         lora_list.append({
             "name": TURBO_LORA_NAME,
             "strength": float(inputs.get("turbo_strength", 1.0)),
         })
+
+    # Detect if user intentionally requested a plain, solid, or white background
+    user_wants_plain_bg = any(
+        kw in raw_prompt.lower()
+        for kw in (
+            "white background",
+            "simple background",
+            "plain background",
+            "blank background",
+            "solid background",
+            "empty background",
+            "transparent background",
+            "monochrome background",
+        )
+    )
+
+    if user_wants_plain_bg:
+        for bg_tag in (
+            "detailed scenery", "beautiful background", "scenic environment",
+            "atmospheric lighting", "scenic background", "dynamic background",
+            "cinematic battlefield", "vintage anime scenery", "beautiful atmospheric landscape"
+        ):
+            quality_booster = quality_booster.replace(f", {bg_tag}", "").replace(f"{bg_tag}, ", "").replace(bg_tag, "")
 
     if quality_booster not in raw_prompt:
         positive_text = f"{raw_prompt}, {quality_booster}"
@@ -923,17 +966,20 @@ def build_workflow_from_inputs(inputs: Dict[str, Any]) -> Tuple[Dict[str, Any], 
         default_steps = 4
         default_cfg = 1.15
         default_sampler = "euler"
+        default_scheduler = "simple"
     elif has_turbo_active:
         default_steps = 10
         if preset_cfg is not None:
             default_cfg = preset_cfg
         else:
             default_cfg = 1.25
-        default_sampler = "euler"
+        default_sampler = "er_sde"
+        default_scheduler = "simple"
     else:
-        default_steps = 16
-        default_cfg = 1.8
-        default_sampler = "euler"
+        default_steps = 20
+        default_cfg = 3.5
+        default_sampler = "er_sde"
+        default_scheduler = "simple"
 
     width = int(inputs.get("width", 768))
     height = int(inputs.get("height", 1024))
@@ -949,10 +995,10 @@ def build_workflow_from_inputs(inputs: Dict[str, Any]) -> Tuple[Dict[str, Any], 
         logger.warning(f"⚠️ Sampler '{sampler}' not recognized. Falling back to '{default_sampler}'.")
         sampler = default_sampler
 
-    scheduler = str(inputs.get("scheduler", "simple")).strip().lower()
+    scheduler = str(inputs.get("scheduler", default_scheduler)).strip().lower()
     if scheduler not in VALID_SCHEDULERS:
-        logger.warning(f"⚠️ Scheduler '{scheduler}' not recognized. Falling back to 'simple'.")
-        scheduler = "simple"
+        logger.warning(f"⚠️ Scheduler '{scheduler}' not recognized. Falling back to '{default_scheduler}'.")
+        scheduler = default_scheduler
 
     resolved_clip = resolve_clip_name(inputs.get("clip_name", NOVA_CLIP_NAME))
     resolved_vae = resolve_vae_name(inputs.get("vae_name", NOVA_VAE_NAME))
