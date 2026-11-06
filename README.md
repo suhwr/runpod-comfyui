@@ -24,17 +24,19 @@ Features **Pre-baked 14 SOTA LoRAs**, **Multi-LoRA Chaining Presets**, **Qwen 2.
 
 ## 🎨 1. Multi-LoRA Tuning Presets (`"preset"`)
 
-Instead of configuring multiple LoRA weights manually, you can pass `"preset"` to automatically activate a tailored multi-LoRA stack with tuned CFG, steps, and quality boosters:
+Instead of configuring multiple LoRA weights manually, you can pass `"preset"` to automatically activate a tailored multi-LoRA stack with tuned CFG, steps, and dedicated 2D quality boosters:
 
 | Preset Name | LoRA Stack Combinations | CFG / Steps | Visual Characteristics & Output Style |
 | :--- | :--- | :---: | :--- |
-| **`"master_illustrator"`**<br>*(or `"digital_art"`)* | `Anima Turbo` (0.95)<br>+ `Cloth & Hair Detailer` (0.65)<br>+ `Aesthetic Boost` (0.65)<br>+ `Anatomy Fix` (0.75) | `1.30`<br>10 steps | **The Flagship Digital Art Recipe:** Clean lineart, expressive eyes, intricate hair strands, natural fabric folds, and accurate hand anatomy. 100% free of greasy AI-slop textures. |
-| **`"hand_drawn_sketch"`**<br>*(or `"sketch"`)* | `Anima Turbo` (0.90)<br>+ `Sketch Style (Yamimatsu7)` (0.80)<br>+ `Cloth & Hair Detailer` (0.60)<br>+ `Aesthetic Boost` (0.50) | `1.25`<br>10 steps | **Authentic Pro Sketch:** Draft lines, delicate pencil hatching, thin ink lineart, and dynamic drawing board aesthetic. |
-| **`"character_focus"`**<br>*(or `"strong_character"`)* | `Anima Turbo` (0.95)<br>+ `Anatomy Fix` (0.85; `clip: 0.95`)<br>+ `Cloth & Hair Detailer` (0.70)<br>+ `Aesthetic Boost` (0.60) | `1.30`<br>10 steps | **Maximum Character Recognition (98%+):** Boosted CLIP text weights ensure complex character outfits, hair accessories, and canonical features adhere strictly to the prompt without concept bleed. |
-| **`"watercolor_classic"`**<br>*(or `"sugimori"`)* | `Anima Turbo` (0.90)<br>+ `Watercolor Artist (Sugimori)` (0.75)<br>+ `Cloth & Hair Detailer` (0.55)<br>+ `Aesthetic Boost` (0.50) | `1.30`<br>10 steps | **Classic 90s Hand-Drawn Watercolor:** Soft watercolor washes, paper grain texture, and delicate outline art (legendary Ken Sugimori aesthetic). |
-| **`"modern_anime"`**<br>*(or `"pixiv"` / `"noobai"`)* | `Anima Turbo` (0.95)<br>+ `NoobAI Modern Style` (0.70)<br>+ `Cloth & Hair Detailer` (0.60)<br>+ `Aesthetic Boost` (0.60) | `1.35`<br>10 steps | **Modern Danbooru Vibrant Art:** Vibrant pop colors, high contrast, clean modern illustration style. |
-| **`"painterly"`**<br>*(or `"fantasy"`)* | `Anima Turbo` (0.90)<br>+ `Fantasy Art (Rutkowski)` (0.60)<br>+ `Cloth & Hair Detailer` (0.55)<br>+ `Aesthetic Boost` (0.55) | `1.40`<br>12 steps | **Cinematic Fantasy Scenery:** Painterly digital brushwork, dramatic atmospheric lighting (god rays), and deep environmental scenery. |
-| **`"retro_90s"`**<br>*(or `"vintage"`)* | `Anima Turbo` (0.90)<br>+ `Retro 90s Cel` (0.75)<br>+ `Vintage OVA Lineart` (0.50) | `1.30`<br>10 steps | **Classic 90s Cel Animation:** Nostalgic hand-painted anime cel shading, film grain, and 90s OVA mechanical lineart. |
+| **`"pure_2d"`**<br>*(or `"flat_anime"` / `"cel_shading"`)* | `Anima Turbo` (0.90)<br>+ `Sharp Lineart` (0.50) | `1.15`<br>10 steps | **Pure 2D Anime Screencap:** 100% flat cel-shading, zero 3D spherical gradients, bold crisp lineart, completely free of AI-slop textures. |
+| **`"master_illustrator"`**<br>*(or `"digital_art"`)* | `Anima Turbo` (0.90)<br>+ `Aesthetic Boost` (0.45) | `1.25`<br>10 steps | **The SOTA Digital Artist Recipe:** Clean 2D Japanese digital artist illustration (Pixiv/Twitter). Harmonious flat colors, clear expressive eyes, clean lines. |
+| **`"hand_drawn_sketch"`**<br>*(or `"sketch"`)* | `Anima Turbo` (0.85)<br>+ `Sketch Style (Yamimatsu7)` (0.85) | `1.20`<br>10 steps | **Authentic Hand-Drawn Sketch:** Draft lines, delicate pencil hatching, thin ink lineart, and artist sketchbook drawing board aesthetic. |
+| **`"character_focus"`**<br>*(or `"strong_character"`)* | `Anima Turbo` (0.90)<br>+ `Anatomy Fix` (0.65; RL tuned) | `1.25`<br>10 steps | **Maximum Character Recognition (98%+):** Boosted CLIP text weights ensure complex character outfits, hair accessories, and canonical features adhere strictly to the prompt without concept bleed. |
+| **`"watercolor_classic"`**<br>*(or `"sugimori"`)* | `Anima Turbo` (0.85)<br>+ `Watercolor Artist (Sugimori)` (0.85) | `1.20`<br>10 steps | **Classic 90s Hand-Drawn Watercolor:** Soft watercolor washes, paper grain texture, and delicate outline art (legendary Ken Sugimori aesthetic). |
+| **`"modern_anime"`**<br>*(or `"pixiv"` / `"noobai"`)* | `Anima Turbo` (0.90)<br>+ `NoobAI Modern Style` (0.75) | `1.25`<br>10 steps | **Modern Danbooru Vibrant Art:** Vibrant pop colors, high contrast, clean modern cel shading illustration. |
+| **`"retro_90s"`**<br>*(or `"vintage"`)* | `Anima Turbo` (0.85)<br>+ `Retro 90s Cel (Sailor Moon)` (0.80) | `1.20`<br>10 steps | **Classic 90s Cel Animation:** Nostalgic hand-painted anime cel shading, film grain, and 90s TV anime palette. |
+| **`"dynamic_action"`**<br>*(or `"battle_pose"`)* | `Anima Turbo` (0.90)<br>+ `Dynamic Action (DragonBall)` (0.75) | `1.25`<br>10 steps | **Dynamic Combat & Action:** Martial arts fighting stances, dynamic motion lines, and intense perspective lineart. |
+| **`"painterly"`**<br>*(or `"fantasy"`)* | `Anima Turbo` (0.90)<br>+ `Fantasy Art (Rutkowski)` (0.60) | `1.30`<br>12 steps | **Painterly Fantasy Concept Art:** Expressive digital brushwork, traditional art media texture, and rich artistic composition. |
 
 ---
 
@@ -67,7 +69,7 @@ All 14 LoRAs are downloaded during `docker build` into `/app/ComfyUI/models/lora
 | :--- | :---: | :---: | :--- |
 | `prompt` | `string` | *(Required)* | Positive anime prompt tags. |
 | `preset` | `string` | `""` | Quick multi-LoRA preset (`master_illustrator`, `hand_drawn_sketch`, `character_focus`, `watercolor_classic`, `modern_anime`, `painterly`, `retro_90s`). |
-| `model` | `string` | `"nova"` | Base model: `"nova"` (Default 2D Anime Danbooru Master), `"silvermoon"` (Painterly), `"orange"` (2.5D). |
+| `model` | `string` | `"nova"` | Base model: `"nova"` (Nova Anime AM v6.0), `"silvermoon"` (SilvermoonMix Anima Evolved), `"anima_base"` (CircleStone Anima Base v1.0 DiT), `"orange"` (Nova Orange AM 2.5D). |
 | `turbo` | `boolean` | `false` | Enable Anima Turbo v1.1 standalone (10 steps, CFG 1.4, euler). |
 | `turbo_strength` | `float` | `1.0` | Turbo strength override (0.0 to 1.0). |
 | `loras` | `array` | `[]` | Dynamic multiple LoRA chaining (`[{"name": "...", "strength": 0.8}]`). Can be stacked on top of any `preset`. |

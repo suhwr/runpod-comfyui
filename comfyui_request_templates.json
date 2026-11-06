@@ -3,28 +3,37 @@
 
   "available_multi_lora_presets": [
     {
-      "name": "master_illustrator",
-      "aliases": ["digital_art", "artist", "illustrator"],
-      "stacked_loras": ["Anima Turbo v1.1", "Cloth & Hair Detailer", "Highres Aesthetic Boost", "RL Anatomy Fix"],
-      "recommended_cfg": 1.30,
+      "name": "pure_2d",
+      "aliases": ["flat_anime", "cel_shading", "flat_2d"],
+      "stacked_loras": ["Anima Turbo v1.1", "Sharp High-Contrast Lineart"],
+      "recommended_cfg": 1.15,
       "recommended_steps": 10,
       "sampler": "euler",
-      "description": "RESEP UTAMA: Menghasilkan gambar digital artist profesional (Pixiv/Twitter SOTA). Garis lineart bersih, mata jernih, uraian rambut mikro, lipatan baju natural, dan bebas kulit plastik berminyak."
+      "description": "2D MURNI / ZERO-SLOP: Cel-shading anime murni tanpa gradasi bola 3D, tanpa kulit berminyak, garis lineart tegas khas anime screencap TV & manga."
+    },
+    {
+      "name": "master_illustrator",
+      "aliases": ["digital_art", "artist", "illustrator", "clean_anime"],
+      "stacked_loras": ["Anima Turbo v1.1", "Highres Aesthetic Boost (Mild)"],
+      "recommended_cfg": 1.25,
+      "recommended_steps": 10,
+      "sampler": "euler",
+      "description": "RESEP UTAMA DIGITAL ARTIST: Gambar ilustrator profesional Jepang (Pixiv/Twitter SOTA). Lineart jernih, warna rata harmonis, mata hidup, tanpa over-baking mikro-tekstur."
     },
     {
       "name": "hand_drawn_sketch",
       "aliases": ["sketch", "rough_sketch", "pencil_sketch"],
-      "stacked_loras": ["Anima Turbo v1.1", "Sketch Style (Yamimatsu7)", "Cloth & Hair Detailer", "Highres Aesthetic Boost"],
-      "recommended_cfg": 1.25,
+      "stacked_loras": ["Anima Turbo v1.1", "Sketch Style (Yamimatsu7)"],
+      "recommended_cfg": 1.20,
       "recommended_steps": 10,
       "sampler": "euler",
-      "description": "Gaya sketsa tangan otentik: Garis pensil tipis, arsir halus (hatching), draft ilustrator di lembar buku sketsa."
+      "description": "Gaya sketsa tangan otentik: Garis pensil/tinta tipis, arsir manual (hatching), draft ilustrator di kertas sketsa fisik."
     },
     {
       "name": "character_focus",
       "aliases": ["strong_character", "character"],
-      "stacked_loras": ["Anima Turbo v1.1", "RL Anatomy Fix (CLIP 0.95)", "Cloth & Hair Detailer", "Highres Aesthetic Boost"],
-      "recommended_cfg": 1.30,
+      "stacked_loras": ["Anima Turbo v1.1", "RL Anatomy & Costume Alignment"],
+      "recommended_cfg": 1.25,
       "recommended_steps": 10,
       "sampler": "euler",
       "description": "Pengenalan karakter paling kuat (adherence 98%+). Ornamen rambut, kostum resmi anime/game, dan fitur karakter terkunci presisi tanpa konsep bocor."
@@ -32,8 +41,8 @@
     {
       "name": "watercolor_classic",
       "aliases": ["sugimori", "classic_art", "watercolor"],
-      "stacked_loras": ["Anima Turbo v1.1", "Watercolor Artist (Sugimori Ken)", "Cloth & Hair Detailer", "Highres Aesthetic Boost"],
-      "recommended_cfg": 1.30,
+      "stacked_loras": ["Anima Turbo v1.1", "Watercolor Artist (Sugimori Ken)"],
+      "recommended_cfg": 1.20,
       "recommended_steps": 10,
       "sampler": "euler",
       "description": "Gaya ilustrasi cat air klasik era 90-an: Sapuan watercolor lembut, tekstur kertas manual, dan outline pensil halus (gaya Ken Sugimori)."
@@ -41,29 +50,38 @@
     {
       "name": "modern_anime",
       "aliases": ["pixiv", "noobai"],
-      "stacked_loras": ["Anima Turbo v1.1", "NoobAI Modern Style", "Cloth & Hair Detailer", "Highres Aesthetic Boost"],
-      "recommended_cfg": 1.35,
+      "stacked_loras": ["Anima Turbo v1.1", "NoobAI Modern Style"],
+      "recommended_cfg": 1.25,
       "recommended_steps": 10,
       "sampler": "euler",
-      "description": "Gaya modern Danbooru vibrant yang tajam, warna pop cerah, dan kontras seimbang."
-    },
-    {
-      "name": "painterly",
-      "aliases": ["fantasy", "cinematic"],
-      "stacked_loras": ["Anima Turbo v1.1", "Fantasy Art (Greg Rutkowski)", "Cloth & Hair Detailer", "Highres Aesthetic Boost"],
-      "recommended_cfg": 1.40,
-      "recommended_steps": 12,
-      "sampler": "euler",
-      "description": "Lukisan digital pemandangan fantasi dengan pencahayaan sinematik (god rays) dan latar berkedalaman tinggi."
+      "description": "Gaya modern Danbooru vibrant yang tajam, warna pop cerah, dan cel shading bersih."
     },
     {
       "name": "retro_90s",
       "aliases": ["retro", "vintage"],
-      "stacked_loras": ["Anima Turbo v1.1", "Retro 90s Cel", "Vintage OVA Lineart"],
-      "recommended_cfg": 1.30,
+      "stacked_loras": ["Anima Turbo v1.1", "Retro 90s Cel (Sailor Moon)"],
+      "recommended_cfg": 1.20,
       "recommended_steps": 10,
       "sampler": "euler",
-      "description": "Cel-shading anime jadul era 90-an tanpa efek plastik: Warna analog bernostalgia dan goresan OVA klasik."
+      "description": "Cel-shading anime jadul era 90-an tanpa efek plastik: Warna analog bernostalgia dan goresan animasi TV klasik."
+    },
+    {
+      "name": "dynamic_action",
+      "aliases": ["battle_pose", "action"],
+      "stacked_loras": ["Anima Turbo v1.1", "Dynamic Action Pose (DragonBall)"],
+      "recommended_cfg": 1.25,
+      "recommended_steps": 10,
+      "sampler": "euler",
+      "description": "Pose bertarung dinamis, motion lines aksi intens, dan siluet tubuh berenergi tinggi dengan lineart bersih."
+    },
+    {
+      "name": "painterly",
+      "aliases": ["fantasy", "cinematic"],
+      "stacked_loras": ["Anima Turbo v1.1", "Fantasy Concept Art (Greg Rutkowski)"],
+      "recommended_cfg": 1.30,
+      "recommended_steps": 12,
+      "sampler": "euler",
+      "description": "Lukisan ilustrasi konsep artistik dengan goresan kuas kuas ekspresif dan palet fantasi."
     }
   ],
 
