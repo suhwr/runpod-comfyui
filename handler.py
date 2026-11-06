@@ -129,9 +129,9 @@ def resolve_lora_name(requested_name: str, available_loras: Optional[List[str]] 
 # Default quality tags (Tuned specifically for 2D Anime & Anti-Slop aesthetics)
 NOVA_QUALITY_BOOSTER = (
     "score_9, score_8, score_7, very aesthetic, newest, absurdres, highres, "
-    "clean lineart, cel shading, delicate facial features, beautiful expressive eyes, detailed hair strands, "
-    "cinematic lighting, balanced contrast, fine shadows, rich depth, vibrant colors, detailed scenery background, "
-    "scenic environment, atmospheric depth, rich environmental details"
+    "digital illustration, clean lineart, cel shading, delicate facial features, expressive eyes, detailed hair strands, "
+    "cinematic lighting, balanced contrast, fine shadows, rich depth, harmonious colors, detailed scenery background, "
+    "atmospheric depth, scenic environment"
 )
 
 ORANGE_QUALITY_BOOSTER = (
@@ -143,8 +143,8 @@ ORANGE_QUALITY_BOOSTER = (
 
 SILVERMOON_QUALITY_BOOSTER = (
     "score_9, score_8, very aesthetic, newest, absurdres, highres, "
-    "perfect anatomy, accurate hands, finely detailed fingers, beautiful expressive face, intricate eyes, delicate lineart, "
-    "detailed scenery background, atmospheric ambient lighting, rich environment, harmonious colors, detailed illustration"
+    "painterly, delicate brushwork, accurate hands, finely detailed fingers, beautiful expressive face, intricate eyes, delicate lineart, "
+    "detailed scenery background, atmospheric ambient lighting, rich environment, harmonious colors, detailed digital illustration"
 )
 
 NEGATIVE_DEFAULT = (
@@ -153,8 +153,8 @@ NEGATIVE_DEFAULT = (
     "bad anatomy, bad hands, missing fingers, extra digits, extra fingers, fewer digits, fused fingers, "
     "elongated fingers, long fingers, malformed fingers, mutated hands, poorly drawn hands, disfigured, "
     "bad proportions, gross proportions, malformed limbs, extra limbs, missing limbs, floating limbs, "
-    "flat colors, washed out, dull lighting, oversaturated, amateur, overexposed, blown out highlights, glaring light, glowing glare, "
-    "greasy skin, shiny skin, plastic skin, 3d, realistic, photorealistic, oily skin, doll-like face, mannequin"
+    "washed out, dull lighting, oversaturated, amateur, overexposed, blown out highlights, glaring light, glowing glare, "
+    "greasy skin, shiny skin, plastic skin, 3d, realistic, photorealistic, 3d render, octane render, airbrushed, oily skin, doll-like face, mannequin, glossy plastic"
 )
 
 NEGATIVE_BG_BLOCK = (
@@ -467,12 +467,29 @@ def build_workflow_from_inputs(inputs: Dict[str, Any]) -> Tuple[Dict[str, Any], 
     else:
         negative_text = base_negative
 
-    # ─── Dynamic Multiple LoRA Chaining ────────────────────────────────────────
+    # ─── Preset & Dynamic Multiple LoRA Chaining ───────────────────────────────
+    preset = str(inputs.get("preset", "")).strip().lower()
     raw_loras = inputs.get("loras") or inputs.get("lora")
     use_turbo = bool(inputs.get("turbo", False) or inputs.get("anima_turbo", False))
 
     lora_list = []
-    if use_turbo:
+    if preset in ("digital_art", "artist", "illustrator", "clean_anime"):
+        # The SOTA Digital Artist recipe: Turbo + Aesthetic Boost + Anatomy Fix
+        lora_list.append({"name": "Anima_Turbo_v1.1.safetensors", "strength": 0.95})
+        lora_list.append({"name": "aesthetic_boost", "strength": 0.65, "strength_model": 0.60, "strength_clip": 0.75})
+        lora_list.append({"name": "anatomy_fix", "strength": 0.75, "strength_model": 0.70, "strength_clip": 0.85})
+    elif preset in ("modern_anime", "pixiv", "noobai"):
+        lora_list.append({"name": "Anima_Turbo_v1.1.safetensors", "strength": 0.95})
+        lora_list.append({"name": "noobai_style", "strength": 0.70, "strength_model": 0.65, "strength_clip": 0.80})
+        lora_list.append({"name": "aesthetic_boost", "strength": 0.60})
+    elif preset in ("painterly", "fantasy", "cinematic"):
+        lora_list.append({"name": "Anima_Turbo_v1.1.safetensors", "strength": 0.90})
+        lora_list.append({"name": "fantasy_art", "strength": 0.60, "strength_model": 0.60, "strength_clip": 0.70})
+        lora_list.append({"name": "aesthetic_boost", "strength": 0.55})
+    elif preset in ("retro_90s", "retro", "vintage"):
+        lora_list.append({"name": "Anima_Turbo_v1.1.safetensors", "strength": 0.90})
+        lora_list.append({"name": "retro_90s", "strength": 0.75, "strength_model": 0.70, "strength_clip": 0.80})
+    elif use_turbo:
         lora_list.append({
             "name": TURBO_LORA_NAME,
             "strength": float(inputs.get("turbo_strength", 1.0)),
@@ -553,7 +570,7 @@ def build_workflow_from_inputs(inputs: Dict[str, Any]) -> Tuple[Dict[str, Any], 
         default_sampler = "euler"
     elif has_turbo_active:
         default_steps = 10
-        default_cfg = 1.4
+        default_cfg = 1.3 if preset in ("digital_art", "artist", "illustrator", "clean_anime") else 1.4
         default_sampler = "euler"
     else:
         default_steps = 16
