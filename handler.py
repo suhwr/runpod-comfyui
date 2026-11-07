@@ -340,6 +340,72 @@ def ensure_model_on_disk(filename: str, url: str) -> bool:
     return False
 
 
+def save_reference_image(raw_image_input: str, target_width: int = 768, target_height: int = 1024) -> Tuple[Optional[str], int, int]:
+    """
+    Accepts image as URL, base64 data string, or existing filepath.
+    Resizes it cleanly to multiples of 16 to avoid VAE/UNet shape mismatch,
+    saves into ComfyUI's input directory, and returns (filename, width, height).
+    """
+    if not raw_image_input or not isinstance(raw_image_input, str):
+        return None, target_width, target_height
+
+    raw_clean = raw_image_input.strip()
+    image_bytes = None
+
+    try:
+        if raw_clean.startswith("http://") or raw_clean.startswith("https://"):
+            logger.info(f"⬇️ Downloading reference image from URL: {raw_clean[:60]}...")
+            resp = requests.get(raw_clean, timeout=20)
+            if resp.status_code == 200:
+                image_bytes = resp.content
+            else:
+                logger.warning(f"Failed to download image from URL (HTTP {resp.status_code})")
+                return None, target_width, target_height
+        elif raw_clean.startswith("data:image") or len(raw_clean) > 200:
+            if "base64," in raw_clean:
+                raw_clean = raw_clean.split("base64,")[1]
+            image_bytes = base64.b64decode(raw_clean)
+        elif os.path.isfile(raw_clean):
+            with open(raw_clean, "rb") as f:
+                image_bytes = f.read()
+    except Exception as exc:
+        logger.error(f"❌ Failed to parse reference image: {exc}")
+        return None, target_width, target_height
+
+    if not image_bytes:
+        return None, target_width, target_height
+
+    try:
+        from PIL import Image
+        img = Image.open(io.BytesIO(image_bytes))
+        if img.mode != "RGB":
+            img = img.convert("RGB")
+
+        w, h = img.size
+        # Maintain aspect ratio, cap largest dimension at 1024, ensure divisible by 16
+        scale = min(1024 / max(w, h), 1.0)
+        new_w = max(256, int(round((w * scale) / 16.0)) * 16)
+        new_h = max(256, int(round((h * scale) / 16.0)) * 16)
+
+        if (new_w, new_h) != (w, h):
+            img = img.resize((new_w, new_h), Image.Resampling.LANCZOS)
+
+        filename = f"ref_{int(time.time())}_{uuid.uuid4().hex[:8]}.png"
+        input_dir = os.path.join(COMFY_DIR, "input")
+        try:
+            os.makedirs(input_dir, exist_ok=True)
+        except Exception:
+            input_dir = "/tmp"
+
+        dest_path = os.path.join(input_dir, filename)
+        img.save(dest_path, format="PNG")
+        logger.info(f"✅ Reference image saved: {dest_path} ({new_w}x{new_h})")
+        return filename, new_w, new_h
+    except Exception as exc:
+        logger.error(f"❌ Failed to process and save reference image: {exc}")
+        return None, target_width, target_height
+
+
 # Allowed samplers & schedulers in ComfyUI KSampler (Guards against invalid inputs)
 VALID_SAMPLERS = {
     "euler", "euler_ancestral", "heun", "heunpp2", "dpm_2", "dpm_2_ancestral",
@@ -1003,6 +1069,16 @@ def build_workflow_from_inputs(inputs: Dict[str, Any]) -> Tuple[Dict[str, Any], 
     resolved_clip = resolve_clip_name(inputs.get("clip_name", NOVA_CLIP_NAME))
     resolved_vae = resolve_vae_name(inputs.get("vae_name", NOVA_VAE_NAME))
 
+    ref_image = inputs.get("image") or inputs.get("image_url") or inputs.get("input_image")
+    denoise = float(inputs.get("denoise", 0.65 if ref_image else 1.0))
+    denoise = max(0.05, min(1.0, denoise))
+
+    saved_ref_filename = None
+    if ref_image:
+        saved_ref_filename, img_w, img_h = save_reference_image(ref_image, width, height)
+        if saved_ref_filename:
+            width, height = img_w, img_h
+
     workflow["1"]["inputs"]["unet_name"] = selected_unet
     workflow["2"]["inputs"]["clip_name"] = resolved_clip
     workflow["3"]["inputs"]["vae_name"] = resolved_vae
@@ -1018,6 +1094,34 @@ def build_workflow_from_inputs(inputs: Dict[str, Any]) -> Tuple[Dict[str, Any], 
     workflow["7"]["inputs"]["sampler_name"] = sampler
     workflow["7"]["inputs"]["scheduler"] = scheduler
     workflow["7"]["inputs"]["model"] = current_model
+
+    if saved_ref_filename:
+        # Img2Img path: LoadImage -> VAEEncode -> KSampler (Node 7)
+        workflow["10"] = {
+            "inputs": {
+                "image": saved_ref_filename
+            },
+            "class_type": "LoadImage",
+            "_meta": {
+                "title": f"Load Reference Image ({saved_ref_filename})"
+            }
+        }
+        workflow["11"] = {
+            "inputs": {
+                "pixels": ["10", 0],
+                "vae": ["3", 0]
+            },
+            "class_type": "VAEEncode",
+            "_meta": {
+                "title": "VAE Encode (Reference Image)"
+            }
+        }
+        workflow["7"]["inputs"]["latent_image"] = ["11", 0]
+        workflow["7"]["inputs"]["denoise"] = denoise
+    else:
+        # Txt2Img path: EmptyLatentImage (Node 6) -> KSampler (Node 7)
+        workflow["7"]["inputs"]["latent_image"] = ["6", 0]
+        workflow["7"]["inputs"]["denoise"] = 1.0
 
     return workflow, seed, active_model_name, applied_loras, missing_loras
 

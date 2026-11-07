@@ -68,7 +68,9 @@ All 14 LoRAs are downloaded during `docker build` into `/app/ComfyUI/models/lora
 | Parameter | Type | Default | Description |
 | :--- | :---: | :---: | :--- |
 | `prompt` | `string` | *(Required)* | Positive anime prompt tags. |
-| `preset` | `string` | `""` | Quick multi-LoRA preset (`master_illustrator`, `hand_drawn_sketch`, `character_focus`, `watercolor_classic`, `modern_anime`, `painterly`, `retro_90s`). |
+| `image` | `string` | `""` | Optional reference image (Public URL, base64 data string, or path) for Img2Img redraw / style transfer. |
+| `denoise` | `float` | `0.65` (img2img) / `1.0` (txt2img) | Denoising strength for Img2Img (`0.4` minor tweak, `0.65` anime redraw, `0.85` creative remake). |
+| `preset` | `string` | `""` | Quick multi-LoRA preset (`master_illustrator`, `pure_2d`, `hand_drawn_sketch`, `character_focus`, `watercolor_classic`, `modern_anime`, `painterly`, `retro_90s`). |
 | `model` | `string` | `"nova"` | Base model: `"nova"` (Default - Nova Anime AM v6.0 with anti-slop cel-shading), `"anima_base"` (CircleStone Anima Base v1.0 DiT with auto-download if missing), `"silvermoon"` (SilvermoonMix Anima Evolved), `"orange"` (Nova Orange AM 2.5D). |
 | `turbo` | `boolean` | `false` | Enable Anima Turbo v1.1 standalone (10 steps, CFG 1.4, euler). |
 | `turbo_strength` | `float` | `1.0` | Turbo strength override (0.0 to 1.0). |
