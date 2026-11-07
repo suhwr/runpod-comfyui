@@ -3,16 +3,24 @@
 
   "available_base_models": [
     {
+      "key": "nova",
+      "aliases": ["nova_anime", "anime"],
+      "default": true,
+      "unet_file": "novaAnimeAM_v6029B.safetensors",
+      "description": "Nova Anime AM v6.0 (2.9B DiT) [DEFAULT]. Fine-tune komunitas paling populer dengan pengenalan Danbooru karakter komprehensif."
+    },
+    {
+      "key": "3.8b",
+      "aliases": ["anima38", "anima_3.8b", "anima3.8b", "38b"],
+      "unet_file": "Anima-3.8B-v1.1.safetensors",
+      "text_encoders": ["qwen_3_06b_base.safetensors", "qwen35_4b.safetensors", "Anima-3.8B-expanded_adapter.safetensors"],
+      "description": "Anima 3.8B v1.1 DiT (52 DiT Blocks). Flagship terbaru dengan Semantic Connector v2 & Dual Qwen3.5 4B text encoder untuk pemahaman prompt luar biasa."
+    },
+    {
       "key": "anima_base",
       "aliases": ["base", "circlestone"],
       "unet_file": "anima-base-v1.0.safetensors",
       "description": "CircleStone Anima Base v1.0 (2.9B DiT). Model resmi asli tanpa merge 2.5D. Menghasilkan gaya 2D anime murni dan cel-shading bersih."
-    },
-    {
-      "key": "nova",
-      "aliases": ["nova_anime", "anime"],
-      "unet_file": "novaAnimeAM_v6029B.safetensors",
-      "description": "Nova Anime AM v6.0 (2.9B DiT). Fine-tune komunitas dengan pengenalan Danbooru karakter komprehensif."
     },
     {
       "key": "silvermoon",
@@ -26,22 +34,22 @@
     {
       "name": "pure_2d",
       "aliases": ["flat_anime", "cel_shading", "flat_2d"],
-      "stacked_loras": ["Anima Turbo v1.1", "Sharp High-Contrast Lineart", "RL Anatomy & Hand Fix"],
-      "recommended_cfg": 1.20,
+      "stacked_loras": ["Anima Turbo v1.1", "NoobAI Modern 2D Cel-Shading", "RL Anatomy & Hand Fix"],
+      "recommended_cfg": 1.65,
       "recommended_steps": 10,
       "sampler": "er_sde",
       "scheduler": "simple",
-      "description": "2D MURNI / ZERO-SLOP: Cel-shading anime murni tanpa gradasi bola 3D, tanpa kulit berminyak, garis lineart tegas khas anime screencap TV & manga dengan anatomi presisi."
+      "description": "2D MURNI / ZERO-SLOP: Cel-shading anime murni tanpa gradasi bola 3D, tanpa kulit berminyak, garis lineart tegas khas anime screencap TV & manga dengan CFG 1.65 penegak gaya flat color."
     },
     {
       "name": "master_illustrator",
       "aliases": ["digital_art", "artist", "illustrator", "clean_anime"],
-      "stacked_loras": ["Anima Turbo v1.1", "Highres Aesthetic Boost (Mild)", "RL Anatomy & Hand Fix", "Cloth & Hair Detailer"],
+      "stacked_loras": ["Anima Turbo v1.1", "Highres Aesthetic Boost", "RL Anatomy & Hand Fix", "Cloth & Hair Detailer"],
       "recommended_cfg": 1.25,
       "recommended_steps": 10,
       "sampler": "er_sde",
       "scheduler": "simple",
-      "description": "RESEP UTAMA DIGITAL ARTIST: Gambar ilustrator profesional Jepang (Pixiv/Twitter SOTA). Lineart jernih, lekukan tubuh & anatomi natural, warna rata harmonis, mata hidup, dan background pemandangan detail."
+      "description": "RESEP UTAMA DIGITAL ARTIST: Gambar ilustrator profesional Jepang (Pixiv/Twitter SOTA). Lineart jernih, lekukan tubuh & anatomi natural, warna harmonis, mata hidup, dan background pemandangan detail."
     },
     {
       "name": "hand_drawn_sketch",
@@ -86,8 +94,8 @@
     {
       "name": "retro_90s",
       "aliases": ["retro", "vintage"],
-      "stacked_loras": ["Anima Turbo v1.1", "Retro 90s Cel (Sailor Moon)", "RL Anatomy & Hand Fix"],
-      "recommended_cfg": 1.20,
+      "stacked_loras": ["Anima Turbo v1.1", "NoobAI Cel Shading Style", "RL Anatomy & Hand Fix"],
+      "recommended_cfg": 1.25,
       "recommended_steps": 10,
       "sampler": "er_sde",
       "scheduler": "simple",
@@ -96,7 +104,7 @@
     {
       "name": "dynamic_action",
       "aliases": ["battle_pose", "action"],
-      "stacked_loras": ["Anima Turbo v1.1", "Dynamic Action Pose (DragonBall)", "RL Anatomy & Hand Fix"],
+      "stacked_loras": ["Anima Turbo v1.1", "RL Anatomy & Hand Fix", "Rendering Detailer"],
       "recommended_cfg": 1.25,
       "recommended_steps": 10,
       "sampler": "er_sde",
@@ -106,8 +114,8 @@
     {
       "name": "painterly",
       "aliases": ["fantasy", "cinematic"],
-      "stacked_loras": ["Anima Turbo v1.1", "Fantasy Concept Art (Greg Rutkowski)", "RL Anatomy & Hand Fix"],
-      "recommended_cfg": 1.30,
+      "stacked_loras": ["Anima Turbo v1.1", "Highres Aesthetic Boost", "Rendering Detailer"],
+      "recommended_cfg": 1.25,
       "recommended_steps": 12,
       "sampler": "er_sde",
       "scheduler": "simple",
@@ -119,93 +127,9 @@
     {
       "file": "Anima_Turbo_v1.1.safetensors",
       "aliases": ["turbo", "anima_turbo", "anima-turbo-lora-v0.2.safetensors"],
-      "category": "Speed & Anti-Slop Foundation",
-      "recommended_strength": 0.95,
+      "category": "Speed & Anti-Slop Foundation (80k+ DL)",
+      "recommended_strength": 0.90,
       "description": "Fondasi anti-slop Anima DiT. Memotong over-sampling noise sehingga kulit tidak tampak berminyak/plastik."
-    },
-    {
-      "file": "anima_context_detailer_base10.safetensors",
-      "aliases": ["cloth_and_hair_detailer", "detail_tweaker", "fabric_detailer"],
-      "category": "Micro-Details & Clothing",
-      "recommended_strength": 0.65,
-      "description": "LoRA spesialis detail mikro: Menambah uraian helai rambut terurai dan lipatan/lekukan kain pakaian yang natural."
-    },
-    {
-      "file": "rendering_detailer_base10-000400.safetensors",
-      "aliases": ["rendering_detailer", "texture_detailer"],
-      "category": "Rendering & Crispness",
-      "recommended_strength": 0.55,
-      "description": "Mempertajam goresan kuas rendering dan tekstur permukaan agar tidak blur/lembek."
-    },
-    {
-      "file": "yamimatsu7_A3P_v1.safetensors",
-      "aliases": ["sketch_style", "hand_drawn_sketch", "pencil_sketch"],
-      "category": "Hand-Drawn Sketch",
-      "recommended_strength": 0.80,
-      "description": "Gaya sketsa tangan pensil dan lineart tipis otentik. Memberikan hasil akhir seperti draft ilustrator profesional."
-    },
-    {
-      "file": "sugimori_ken_A3P_v1.safetensors",
-      "aliases": ["watercolor_artist", "sugimori_style", "classic_watercolor"],
-      "category": "Classic Watercolor",
-      "recommended_strength": 0.75,
-      "description": "Gaya ilustrasi cat air klasik Ken Sugimori era 90-an dengan outline pensil halus dan gradasi lembut."
-    },
-    {
-      "file": "anima-highres-aesthetic-boost.safetensors",
-      "aliases": ["aesthetic_boost", "highres_boost"],
-      "category": "Detail & Eye Polish",
-      "recommended_strength": 0.65,
-      "description": "Booster resmi CircleStone untuk memperjelas pupil mata, catchlights, dan kejernihan lineart."
-    },
-    {
-      "file": "anima-rl-v0.1.safetensors",
-      "aliases": ["anatomy_fix", "anima_rl", "prompt_align"],
-      "category": "Anatomy & Prompt Fidelity",
-      "recommended_strength": 0.75,
-      "description": "Tuned via Reinforcement Learning untuk akurasi jari/tangan dan kepatuhan deskripsi pakaian karakter."
-    },
-    {
-      "file": "noobai-style-anima-lora-final.safetensors",
-      "aliases": ["noobai_style", "noobai"],
-      "category": "Modern Anime",
-      "recommended_strength": 0.70,
-      "description": "Gaya ilustrasi anime modern vibrant Danbooru (adaptasi NoobAI untuk Anima DiT)."
-    },
-    {
-      "file": "anima-greg-rutkowski-style.safetensors",
-      "aliases": ["fantasy_art", "dramatic_lighting"],
-      "category": "Lighting & Scenery",
-      "recommended_strength": 0.60,
-      "description": "Pencahayaan atmosferis dramatis, latar fantasi luas, dan kedalaman bayangan."
-    },
-    {
-      "file": "SailorMoon-A1_v1.safetensors",
-      "aliases": ["retro_90s", "retro_anime_90s", "sailormoon_style"],
-      "category": "Vintage 90s Cel",
-      "recommended_strength": 0.75,
-      "description": "Gaya anime klasik 90-an dengan cel-shading lembut dan palet warna nostalgia analog."
-    },
-    {
-      "file": "DragonBall-A1_v1.safetensors",
-      "aliases": ["dynamic_action", "dynamic_action_pose", "dragonball_style"],
-      "category": "Action & Battle Pose",
-      "recommended_strength": 0.80,
-      "description": "Pose bertarung dinamis, garis aksi pertempuran, dan ketegangan pose."
-    },
-    {
-      "file": "Gunsmith-A1_v1.safetensors",
-      "aliases": ["vintage_ova", "gunsmith_style"],
-      "category": "90s OVA Anime",
-      "recommended_strength": 0.75,
-      "description": "Gaya OVA 90-an legendaris: kostum detail, props mekanikal & lineart tajam."
-    },
-    {
-      "file": "Helltaker-A1_v1.safetensors",
-      "aliases": ["sharp_lineart", "helltaker_style"],
-      "category": "Sharp Stylized Ink",
-      "recommended_strength": 0.75,
-      "description": "Lineart tinta kontras tinggi, siluet tegas dan karakter bergaya stylish."
     },
     {
       "file": "anima_turbo_4step_v3.safetensors",
@@ -213,12 +137,87 @@
       "category": "Ultra Fast Preview",
       "recommended_strength": 1.00,
       "description": "Generasi super kilat 4 steps untuk preview instan sub-1 detik."
+    },
+    {
+      "file": "anima-highres-aesthetic-boost.safetensors",
+      "aliases": ["aesthetic_boost", "highres_boost"],
+      "category": "Detail & Eye Polish (47k+ DL)",
+      "recommended_strength": 0.50,
+      "description": "Booster resmi CircleStone untuk memperjelas pupil mata, catchlights, dan kejernihan lineart."
+    },
+    {
+      "file": "anima-rl-v0.1.safetensors",
+      "aliases": ["anatomy_fix", "anima_rl", "prompt_align"],
+      "category": "Anatomy & Prompt Fidelity (14k+ DL)",
+      "recommended_strength": 0.50,
+      "description": "Tuned via Reinforcement Learning untuk akurasi jari/tangan dan kepatuhan deskripsi pakaian karakter."
+    },
+    {
+      "file": "anima_context_detailer_base10.safetensors",
+      "aliases": ["cloth_and_hair_detailer", "detail_tweaker", "fabric_detailer"],
+      "category": "Micro-Details & Clothing (38k+ DL)",
+      "recommended_strength": 0.40,
+      "description": "LoRA spesialis detail mikro: Menambah uraian helai rambut terurai dan lipatan/lekukan kain pakaian yang natural."
+    },
+    {
+      "file": "rendering_detailer_base10-000400.safetensors",
+      "aliases": ["rendering_detailer", "texture_detailer"],
+      "category": "Rendering & Crispness",
+      "recommended_strength": 0.45,
+      "description": "Mempertajam goresan kuas rendering dan tekstur permukaan agar tidak blur/lembek."
+    },
+    {
+      "file": "noobai-style-anima-lora-final.safetensors",
+      "aliases": ["noobai_style", "noobai", "pure_2d", "flat_anime", "cel_shading"],
+      "category": "Modern Anime & Pure 2D Flat Cel-Shading",
+      "recommended_strength": 0.85,
+      "description": "Kunci utama flat 2D anime murni: Ilustrasi vibrant Danbooru cel shading tanpa efek 2.5D atau bayangan berminyak."
+    },
+    {
+      "file": "yamimatsu7_A3P_v1.safetensors",
+      "aliases": ["sketch_style", "hand_drawn_sketch", "pencil_sketch"],
+      "category": "Hand-Drawn Sketch",
+      "recommended_strength": 0.85,
+      "description": "Gaya sketsa tangan pensil dan lineart tipis otentik. Memberikan hasil akhir seperti draft ilustrator profesional."
+    },
+    {
+      "file": "sugimori_ken_A3P_v1.safetensors",
+      "aliases": ["watercolor_artist", "sugimori_style", "classic_watercolor"],
+      "category": "Classic Watercolor",
+      "recommended_strength": 0.85,
+      "description": "Gaya ilustrasi cat air klasik Ken Sugimori era 90-an dengan outline pensil halus dan gradasi lembut."
     }
   ],
 
   "examples": {
-    "1_master_illustrator_anti_slop": {
-      "description": "RESEP TERBAIK: Menggabungkan Turbo + Fabric/Hair Detailer + Aesthetic Boost + Anatomy Fix. Hasil seperti karya tangan digital artist profesional di Pixiv/Twitter.",
+    "1_pure_2d_cel_shading": {
+      "description": "2D CEL SHADING MURNI: Menggunakan preset pure_2d dengan NoobAI flat style LoRA + CFG 1.65 untuk menjamin gaya flat 2D tanpa kebocoran 2.5D.",
+      "payload": {
+        "input": {
+          "prompt": "1girl, silver hair, cat ears, school uniform, smiling, vibrant anime colors, clean lineart, anime screencap",
+          "preset": "pure_2d",
+          "width": 768,
+          "height": 1024
+        }
+      }
+    },
+
+    "2_anima_38b_flagship": {
+      "description": "FLAGSHIP ANIMA 3.8B: Model DiT 52-block terbaru dengan Qwen 3.5 4B text encoder dan Semantic Connector v2.",
+      "payload": {
+        "input": {
+          "model": "3.8b",
+          "prompt": "1girl, futuristic explorer, glowing tech staff, high altitude mountain temple, cherry blossoms in snow, cinematic sunset",
+          "width": 1024,
+          "height": 1024,
+          "steps": 30,
+          "cfg": 7.5
+        }
+      }
+    },
+
+    "3_master_illustrator_anti_slop": {
+      "description": "RESEP TERBAIK NOVA: Menggabungkan Turbo + Fabric/Hair Detailer + Aesthetic Boost + Anatomy Fix. Hasil seperti karya tangan digital artist profesional di Pixiv/Twitter.",
       "payload": {
         "input": {
           "prompt": "1girl, silver hair, glowing blue eyes, white oversized hoodie, headphone, standing in cyberpunk tokyo street, neon reflection, night city, delicate lighting",
@@ -229,7 +228,7 @@
       }
     },
 
-    "2_character_recognition_focus": {
+    "4_character_recognition_focus": {
       "description": "FOKUS KARAKTER MAKSIMAL (Adherence 98%+): Pakaian, aksesoris, dan rambut karakter tidak akan bocor atau meleset.",
       "payload": {
         "input": {
@@ -241,7 +240,7 @@
       }
     },
 
-    "3_hand_drawn_sketch_style": {
+    "5_hand_drawn_sketch_style": {
       "description": "GAYA SKETSA TANGAN: Garis pensil/tinta tipis dan arsir artistik otentik layaknya draft ilustrator pro.",
       "payload": {
         "input": {
@@ -253,7 +252,7 @@
       }
     },
 
-    "4_classic_watercolor_sugimori": {
+    "6_classic_watercolor_sugimori": {
       "description": "GAYA CAT AIR KLASIK (Ken Sugimori): Sapuan watercolor lembut, tekstur kertas, dan garis pensil manual era 90-an.",
       "payload": {
         "input": {
@@ -265,7 +264,7 @@
       }
     },
 
-    "5_modern_danbooru_pixiv": {
+    "7_modern_danbooru_pixiv": {
       "description": "MODERN PIXIV / NOOBAI: Ilustrasi modern anime yang tajam, warna pop cerah, dan kontras dinamis.",
       "payload": {
         "input": {
@@ -277,8 +276,8 @@
       }
     },
 
-    "6_cinematic_painterly_scenery": {
-      "description": "LUKISAN FANTASI SINEMATIK: Menggunakan model Silvermoon + LoRA fantasy lighting untuk pencahayaan dramatis dan kedalaman atmosferis.",
+    "8_cinematic_painterly_scenery": {
+      "description": "LUKISAN FANTASI SINEMATIK: Menggunakan model Silvermoon untuk pencahayaan lembut dan kedalaman atmosferis.",
       "payload": {
         "input": {
           "prompt": "1girl, fantasy archer, enchanted forest, god rays sunlight, mist, wooden bow, detailed leather armor",
@@ -286,36 +285,6 @@
           "preset": "painterly",
           "width": 832,
           "height": 1216
-        }
-      }
-    },
-
-    "7_vintage_90s_cel_animation": {
-      "description": "RETRO ANIME 90-AN: Cel-shading klasik TV & OVA tanpa efek plastik dengan palet warna analog bernostalgia.",
-      "payload": {
-        "input": {
-          "prompt": "1girl, solo, fighting stance, retro 90s aesthetic, sharp lineart, katana, floating sakura petals",
-          "preset": "retro_90s",
-          "width": 768,
-          "height": 1024
-        }
-      }
-    },
-
-    "8_custom_multi_lora_manual": {
-      "description": "KUSTOM MULTI-LORA MANUAL: Kamu bisa menyusun kombinasi LoRA sendiri atau menambahkan LoRA kustom di atas preset.",
-      "payload": {
-        "input": {
-          "prompt": "1girl, white hair, sharp red eyes, black business suit, tie, grinning",
-          "preset": "master_illustrator",
-          "loras": [
-            {
-              "name": "sharp_lineart.safetensors",
-              "strength": 0.75
-            }
-          ],
-          "width": 768,
-          "height": 1024
         }
       }
     }

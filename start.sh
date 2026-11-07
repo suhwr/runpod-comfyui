@@ -30,9 +30,19 @@ SILVERMOON_UNET_URL="${SILVERMOON_UNET_URL:-https://huggingface.co/silvermoong/S
 ANIMA_BASE_UNET_NAME="${ANIMA_BASE_UNET_NAME:-anima-base-v1.0.safetensors}"
 ANIMA_BASE_UNET_URL="${ANIMA_BASE_UNET_URL:-https://huggingface.co/circlestone-labs/Anima/resolve/main/split_files/diffusion_models/anima-base-v1.0.safetensors}"
 
-# Shared Text Encoder & VAE (Used across all Anima DiT models!)
+# Model 4: Anima-3.8B v1.1 [52 DiT Blocks Flagship]
+ANIMA_38B_UNET_NAME="${ANIMA_38B_UNET_NAME:-Anima-3.8B-v1.1.safetensors}"
+ANIMA_38B_UNET_URL="${ANIMA_38B_UNET_URL:-https://huggingface.co/lylogummy/Anima-3.8B/resolve/main/difussion_models/Anima-3.8B-v1.1.safetensors}"
+
+# Dual Text Encoders & VAE
 NOVA_CLIP_NAME="${NOVA_CLIP_NAME:-qwen_3_06b_base.safetensors}"
 NOVA_CLIP_URL="${NOVA_CLIP_URL:-https://huggingface.co/circlestone-labs/Anima/resolve/main/split_files/text_encoders/qwen_3_06b_base.safetensors}"
+
+QWEN35_CLIP_NAME="${QWEN35_CLIP_NAME:-qwen35_4b.safetensors}"
+QWEN35_CLIP_URL="${QWEN35_CLIP_URL:-https://huggingface.co/lylogummy/Anima-3.8B/resolve/main/text_encoders/qwen35_4b.safetensors}"
+
+ANIMA_ADAPTER_NAME="${ANIMA_ADAPTER_NAME:-Anima-3.8B-expanded_adapter.safetensors}"
+ANIMA_ADAPTER_URL="${ANIMA_ADAPTER_URL:-https://huggingface.co/lylogummy/Anima-3.8B/resolve/main/text_encoders/Anima-3.8B-expanded_adapter.safetensors}"
 
 NOVA_VAE_NAME="${NOVA_VAE_NAME:-qwen_image_vae.safetensors}"
 NOVA_VAE_URL="${NOVA_VAE_URL:-https://huggingface.co/circlestone-labs/Anima/resolve/main/split_files/vae/qwen_image_vae.safetensors}"
@@ -79,7 +89,16 @@ for VOL in "/runpod-volume" "/workspace" "/volume"; do
         done
     fi
 
-    # Shared Qwen CLIP
+    # Auto-symlink all text encoders from volume (e.g. qwen_3_06b_base, qwen35_4b, Anima-3.8B-expanded_adapter)
+    if [ -d "$VOL/models/text_encoders" ]; then
+        for FPATH in "$VOL/models/text_encoders"/*.safetensors "$VOL/models/text_encoders"/*.pt; do
+            [ -f "$FPATH" ] || continue
+            TNAME="$(basename "$FPATH")"
+            ln -sf "$FPATH" "$TEXT_ENCODER_DIR/$TNAME"
+        done
+    fi
+
+    # Shared Qwen CLIP fallback check
     for FPATH in "$VOL/models/text_encoders/$NOVA_CLIP_NAME" "$VOL/models/$NOVA_CLIP_NAME" "$VOL/$NOVA_CLIP_NAME"; do
         if [ -f "$FPATH" ]; then
             echo "⚡ Found Qwen CLIP in volume! Symlinking $FPATH -> $TEXT_ENCODER_DIR/$NOVA_CLIP_NAME"

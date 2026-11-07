@@ -52,12 +52,21 @@ MAX_CONCURRENCY = max(1, int(os.environ.get("MAX_CONCURRENCY", "1")))
 # File paths
 TEMPLATE_DIR = os.path.dirname(__file__)
 WORKFLOW_ANIMA_PATH = os.path.join(TEMPLATE_DIR, "workflow_anima.json")
+WORKFLOW_ANIMA_38B_PATH = os.path.join(TEMPLATE_DIR, "workflow_anima_38b.json")
 
-# Model Filenames & URLs (Pure 2.9B DiT sharing the same Qwen Text Encoder & VAE)
+# Model Filenames & URLs
+# Flagship & Default: Nova Anime AM v6.0 (2.9B DiT)
 NOVA_UNET_NAME = os.environ.get("NOVA_UNET_NAME", "novaAnimeAM_v6029B.safetensors")
 NOVA_UNET_URL = os.environ.get(
     "NOVA_UNET_URL",
     "https://huggingface.co/mogaru99/novaAnimeAM_v6029B/resolve/main/novaAnimeAM_v6029B.safetensors"
+)
+
+# Flagship 3.8B: Anima-3.8B v1.1 (52 DiT Blocks)
+ANIMA_38B_UNET_NAME = os.environ.get("ANIMA_38B_UNET_NAME", "Anima-3.8B-v1.1.safetensors")
+ANIMA_38B_UNET_URL = os.environ.get(
+    "ANIMA_38B_UNET_URL",
+    "https://huggingface.co/lylogummy/Anima-3.8B/resolve/main/difussion_models/Anima-3.8B-v1.1.safetensors"
 )
 
 SILVERMOON_UNET_NAME = os.environ.get("SILVERMOON_UNET_NAME", "SilvermoonMix-Anima29B-Evolved-V2.3.safetensors")
@@ -86,7 +95,20 @@ ANIMA_TURBO_UNET_URL = os.environ.get(
 
 DEFAULT_MODEL = os.environ.get("DEFAULT_MODEL", "nova")
 
+# Dual Text Encoders & VAE
 NOVA_CLIP_NAME = os.environ.get("NOVA_CLIP_NAME", "qwen_3_06b_base.safetensors")
+QWEN35_CLIP_NAME = os.environ.get("QWEN35_CLIP_NAME", "qwen35_4b.safetensors")
+QWEN35_CLIP_URL = os.environ.get(
+    "QWEN35_CLIP_URL",
+    "https://huggingface.co/lylogummy/Anima-3.8B/resolve/main/text_encoders/qwen35_4b.safetensors"
+)
+
+ANIMA_ADAPTER_NAME = os.environ.get("ANIMA_ADAPTER_NAME", "Anima-3.8B-expanded_adapter.safetensors")
+ANIMA_ADAPTER_URL = os.environ.get(
+    "ANIMA_ADAPTER_URL",
+    "https://huggingface.co/lylogummy/Anima-3.8B/resolve/main/text_encoders/Anima-3.8B-expanded_adapter.safetensors"
+)
+
 NOVA_VAE_NAME = os.environ.get("NOVA_VAE_NAME", "qwen_image_vae.safetensors")
 TURBO_LORA_NAME = os.environ.get("TURBO_LORA_NAME", "Anima_Turbo_v1.1.safetensors")
 
@@ -174,7 +196,7 @@ def get_comfy_available_unets() -> List[str]:
                 return files
         except Exception:
             pass
-    return [NOVA_UNET_NAME, SILVERMOON_UNET_NAME]
+    return [NOVA_UNET_NAME, ANIMA_38B_UNET_NAME, SILVERMOON_UNET_NAME, ANIMA_BASE_UNET_NAME]
 
 
 def resolve_unet_name(requested_name: str, available_unets: Optional[List[str]] = None) -> Tuple[str, bool]:
@@ -219,6 +241,10 @@ def resolve_unet_name(requested_name: str, available_unets: Optional[List[str]] 
 
     # 4. Keyword matching based on known models
     cand_lower = req_clean.lower()
+    if "3.8" in cand_lower or "38b" in cand_lower:
+        for f in available_unets:
+            if "3.8" in f.lower() or "38b" in f.lower():
+                return f, True
     if "silver" in cand_lower or "moon" in cand_lower:
         for f in available_unets:
             if "silver" in f.lower():
@@ -284,20 +310,17 @@ def resolve_vae_name(requested_name: str) -> str:
     return NOVA_VAE_NAME
 
 
-def ensure_model_on_disk(filename: str, url: str) -> bool:
-    """
-    Ensure the requested UNet model exists on disk.
-    If missing, download it on demand via aria2c/curl so user requests NEVER get falsely downgraded.
-    """
+def ensure_file_on_disk(subfolder: str, filename: str, url: str, min_size: int = 10_000_000) -> bool:
+    """Ensure a model/weight file exists locally in COMFY_DIR/models/{subfolder}."""
     try:
-        dest_path = os.path.join(COMFY_DIR, "models", "diffusion_models", filename)
-        if os.path.isfile(dest_path) and os.path.getsize(dest_path) > 1_000_000_000:
+        dest_path = os.path.join(COMFY_DIR, "models", subfolder, filename)
+        if os.path.isfile(dest_path) and os.path.getsize(dest_path) >= min_size:
             return True
 
-        logger.info(f"⬇️ Model '{filename}' requested but not found locally. Initiating high-speed on-demand download from {url}...")
+        logger.info(f"⬇️ '{filename}' ({subfolder}) missing locally. Initiating high-speed download from {url}...")
         tmp_path = dest_path + ".tmp"
-        models_dir = os.path.join(COMFY_DIR, "models", "diffusion_models")
-        os.makedirs(models_dir, exist_ok=True)
+        target_dir = os.path.join(COMFY_DIR, "models", subfolder)
+        os.makedirs(target_dir, exist_ok=True)
     except Exception as exc:
         logger.warning(f"Could not prepare destination directory for '{filename}': {exc}")
         return False
@@ -307,11 +330,11 @@ def ensure_model_on_disk(filename: str, url: str) -> bool:
         cmd = [
             "aria2c", "-c", "-x", "16", "-s", "16", "-k", "1M",
             "--file-allocation=none",
-            f"--dir={models_dir}",
+            f"--dir={target_dir}",
             f"--out={filename}.tmp",
             url
         ]
-        res = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, timeout=300)
+        res = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, timeout=600)
         if res.returncode == 0 and os.path.isfile(tmp_path):
             os.replace(tmp_path, dest_path)
             logger.info(f"✅ Successfully downloaded '{filename}' ({os.path.getsize(dest_path)} bytes) via aria2c!")
@@ -319,12 +342,12 @@ def ensure_model_on_disk(filename: str, url: str) -> bool:
         else:
             logger.warning(f"aria2c download failed (code {res.returncode}): {res.stderr.decode('utf-8', errors='ignore')[:300]}")
     except Exception as exc:
-        logger.warning(f"aria2c execution error: {exc}, attempting curl fallback...")
+        logger.warning(f"aria2c execution error for '{filename}': {exc}, attempting curl fallback...")
 
     # 2. Curl fallback
     try:
         cmd = ["curl", "-L", "-s", "--retry", "3", "--connect-timeout", "30", "-o", tmp_path, url]
-        res = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, timeout=300)
+        res = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, timeout=600)
         if res.returncode == 0 and os.path.isfile(tmp_path):
             os.replace(tmp_path, dest_path)
             logger.info(f"✅ Successfully downloaded '{filename}' via curl ({os.path.getsize(dest_path)} bytes)!")
@@ -338,6 +361,14 @@ def ensure_model_on_disk(filename: str, url: str) -> bool:
                 pass
 
     return False
+
+
+def ensure_model_on_disk(filename: str, url: str) -> bool:
+    return ensure_file_on_disk("diffusion_models", filename, url, min_size=500_000_000)
+
+
+def ensure_text_encoder_on_disk(filename: str, url: str) -> bool:
+    return ensure_file_on_disk("text_encoders", filename, url, min_size=50_000_000)
 
 
 def save_reference_image(raw_image_input: str, target_width: int = 768, target_height: int = 1024) -> Tuple[Optional[str], int, int]:
@@ -716,9 +747,16 @@ def build_workflow_from_inputs(inputs: Dict[str, Any]) -> Tuple[Dict[str, Any], 
     model_choice = str(inputs.get("model", DEFAULT_MODEL)).strip().lower()
     raw_unet_req = inputs.get("unet_name", "")
     target_url = ""
+    is_anima_38b = False
 
     # Determine desired UNet target, download URL, and display name
-    if "silvermoon" in model_choice or "silver" in model_choice or "moon" in model_choice:
+    if any(k in model_choice for k in ("3.8b", "anima38", "anima_3.8b", "anima3.8b", "38b", "anima-3.8b")):
+        target_unet = raw_unet_req or ANIMA_38B_UNET_NAME
+        target_url = ANIMA_38B_UNET_URL
+        active_model_name = "Anima 3.8B v1.1 (52 DiT Blocks)"
+        quality_booster = NOVA_QUALITY_BOOSTER
+        is_anima_38b = True
+    elif "silvermoon" in model_choice or "silver" in model_choice or "moon" in model_choice:
         target_unet = raw_unet_req or SILVERMOON_UNET_NAME
         target_url = SILVERMOON_UNET_URL
         active_model_name = "SilvermoonMix Anima Evolved (2.9B)"
@@ -772,10 +810,16 @@ def build_workflow_from_inputs(inputs: Dict[str, Any]) -> Tuple[Dict[str, Any], 
                 pass
             available_unets = get_comfy_available_unets()
 
+    if is_anima_38b:
+        ensure_text_encoder_on_disk(QWEN35_CLIP_NAME, QWEN35_CLIP_URL)
+        ensure_text_encoder_on_disk(ANIMA_ADAPTER_NAME, ANIMA_ADAPTER_URL)
+
     selected_unet, is_available = resolve_unet_name(target_unet, available_unets)
 
     if not is_available:
-        # Only in the worst-case scenario where download failed completely
+        # If fallback model is not Anima 3.8B, reset is_anima_38b to False
+        if "3.8" not in selected_unet.lower():
+            is_anima_38b = False
         if "silver" in selected_unet.lower():
             active_model_name = f"SilvermoonMix Anima Evolved (2.9B) [Auto-fallback from {target_unet}]"
             quality_booster = SILVERMOON_QUALITY_BOOSTER
@@ -789,7 +833,12 @@ def build_workflow_from_inputs(inputs: Dict[str, Any]) -> Tuple[Dict[str, Any], 
 
     custom_negative = inputs.get("negative_prompt", "").strip()
 
-    with open(WORKFLOW_ANIMA_PATH, "r", encoding="utf-8") as f:
+    if is_anima_38b and os.path.isfile(WORKFLOW_ANIMA_38B_PATH):
+        workflow_path = WORKFLOW_ANIMA_38B_PATH
+    else:
+        workflow_path = WORKFLOW_ANIMA_PATH
+
+    with open(workflow_path, "r", encoding="utf-8") as f:
         workflow = json.load(f)
 
     # ─── Curated Presets with Dedicated 2D Boosters & Clean LoRA Stacks ────────
@@ -800,14 +849,14 @@ def build_workflow_from_inputs(inputs: Dict[str, Any]) -> Tuple[Dict[str, Any], 
 
     if preset in ("pure_2d", "flat_anime", "cel_shading", "flat_2d"):
         quality_booster = (
-            "masterpiece, best quality, score_9, score_8, year 2025, 2d, pure 2d, flat color, flat shading, cel shading, "
+            "masterpiece, best quality, score_9, score_8, year 2025, 2d, pure 2d, cel shading, flat color, flat shading, "
             "anime screencap, sharp clean lineart, bold ink outlines, traditional anime drawing, zero gradients, vibrant colors, clean edges, "
             "accurate anatomy, natural body curves, detailed scenery, beautiful scenic background"
         )
-        lora_list.append({"name": "Anima_Turbo_v1.1.safetensors", "strength": 0.90})
-        lora_list.append({"name": "sharp_lineart", "strength": 0.50, "strength_model": 0.50, "strength_clip": 0.60})
-        lora_list.append({"name": "anatomy_fix", "strength": 0.50, "strength_model": 0.45, "strength_clip": 0.55})
-        preset_cfg = 1.20
+        lora_list.append({"name": "Anima_Turbo_v1.1.safetensors", "strength": 0.85})
+        lora_list.append({"name": "noobai-style-anima-lora-final.safetensors", "strength": 0.85, "strength_model": 0.85, "strength_clip": 0.85})
+        lora_list.append({"name": "anatomy_fix", "strength": 0.45, "strength_model": 0.40, "strength_clip": 0.50})
+        preset_cfg = 1.65
     elif preset in ("digital_art", "master_illustrator", "artist", "illustrator", "clean_anime"):
         # The SOTA Digital Artist recipe: Turbo + Mild Aesthetic Boost + Anatomy Fix + Cloth/Hair Detailer
         quality_booster = (
@@ -874,20 +923,20 @@ def build_workflow_from_inputs(inputs: Dict[str, Any]) -> Tuple[Dict[str, Any], 
             "accurate anatomy, natural body curves, dynamic anatomy, dynamic background, cinematic battlefield, scenic environment"
         )
         lora_list.append({"name": "Anima_Turbo_v1.1.safetensors", "strength": 0.90})
-        lora_list.append({"name": "dynamic_action", "strength": 0.75, "strength_model": 0.70, "strength_clip": 0.80})
-        lora_list.append({"name": "anatomy_fix", "strength": 0.60, "strength_model": 0.55, "strength_clip": 0.65})
+        lora_list.append({"name": "anatomy_fix", "strength": 0.65, "strength_model": 0.60, "strength_clip": 0.70})
+        lora_list.append({"name": "rendering_detailer", "strength": 0.40, "strength_model": 0.35, "strength_clip": 0.45})
         preset_cfg = 1.25
     elif preset in ("retro_90s", "retro", "vintage"):
-        # Retro 90s Vintage Cel Animation (Sailor Moon style)
+        # Retro 90s Vintage Cel Animation
         quality_booster = (
             "masterpiece, score_9, score_8, 1990s (style), vintage anime, retro anime cel, "
             "anime screencap, flat color, clean lineart, traditional cel animation, "
             "nostalgic 90s TV anime palette, scanlines, accurate anatomy, natural body curves, vintage anime scenery, scenic background"
         )
         lora_list.append({"name": "Anima_Turbo_v1.1.safetensors", "strength": 0.85})
-        lora_list.append({"name": "retro_90s", "strength": 0.80, "strength_model": 0.75, "strength_clip": 0.85})
+        lora_list.append({"name": "noobai_style", "strength": 0.65, "strength_model": 0.60, "strength_clip": 0.70})
         lora_list.append({"name": "anatomy_fix", "strength": 0.45, "strength_model": 0.40, "strength_clip": 0.50})
-        preset_cfg = 1.20
+        preset_cfg = 1.25
     elif preset in ("painterly", "fantasy", "cinematic"):
         # Painterly Concept Art & Brushwork
         quality_booster = (
@@ -896,9 +945,9 @@ def build_workflow_from_inputs(inputs: Dict[str, Any]) -> Tuple[Dict[str, Any], 
             "accurate anatomy, natural body curves, detailed scenery, beautiful atmospheric landscape, scenic environment"
         )
         lora_list.append({"name": "Anima_Turbo_v1.1.safetensors", "strength": 0.90})
-        lora_list.append({"name": "fantasy_art", "strength": 0.60, "strength_model": 0.55, "strength_clip": 0.65})
-        lora_list.append({"name": "anatomy_fix", "strength": 0.50, "strength_model": 0.45, "strength_clip": 0.55})
-        preset_cfg = 1.30
+        lora_list.append({"name": "aesthetic_boost", "strength": 0.55, "strength_model": 0.50, "strength_clip": 0.60})
+        lora_list.append({"name": "rendering_detailer", "strength": 0.45, "strength_model": 0.40, "strength_clip": 0.50})
+        preset_cfg = 1.25
     elif use_turbo:
         lora_list.append({
             "name": TURBO_LORA_NAME,
@@ -933,24 +982,17 @@ def build_workflow_from_inputs(inputs: Dict[str, Any]) -> Tuple[Dict[str, Any], 
     else:
         positive_text = raw_prompt
 
-    # Detect if user intentionally requested a plain, solid, or white background
-    user_wants_plain_bg = any(
-        kw in raw_prompt.lower()
-        for kw in (
-            "white background",
-            "simple background",
-            "plain background",
-            "blank background",
-            "solid background",
-            "empty background",
-            "transparent background",
-            "monochrome background",
-        )
-    )
-
     base_negative = NEGATIVE_DEFAULT
     if not user_wants_plain_bg:
         base_negative = f"{NEGATIVE_DEFAULT}, {NEGATIVE_BG_BLOCK}"
+
+    if preset in ("pure_2d", "flat_anime", "cel_shading", "flat_2d"):
+        base_negative = (
+            "2.5d, 3d, realistic, photorealistic, semi-realistic, cg, cgi, 3d render, unreal engine, octane render, "
+            "volumetric lighting, airbrush, soft gradients, smooth shading, ambient occlusion, raytracing, "
+            "plastic skin, shiny skin, oily skin, greasy skin, porcelain skin, doll face, glossy plastic, 3d model, "
+            + base_negative
+        )
 
     if custom_negative:
         negative_text = f"{custom_negative}, {base_negative}"
@@ -1028,24 +1070,38 @@ def build_workflow_from_inputs(inputs: Dict[str, Any]) -> Tuple[Dict[str, Any], 
             "strength_clip": strength_clip,
         })
 
-    if has_4step_active:
-        default_steps = 4
-        default_cfg = 1.15
-        default_sampler = "euler"
-        default_scheduler = "simple"
-    elif has_turbo_active:
-        default_steps = 10
-        if preset_cfg is not None:
-            default_cfg = preset_cfg
+    if is_anima_38b:
+        if has_4step_active:
+            default_steps = 6
+            default_cfg = 2.0
+            default_sampler = "euler"
+            default_scheduler = "beta"
+        elif has_turbo_active:
+            default_steps = 14
+            default_cfg = 2.5 if preset_cfg is None else preset_cfg
+            default_sampler = "euler"
+            default_scheduler = "beta"
         else:
-            default_cfg = 1.25
-        default_sampler = "er_sde"
-        default_scheduler = "simple"
+            default_steps = 30
+            default_cfg = 7.5
+            default_sampler = "euler"
+            default_scheduler = "beta"
     else:
-        default_steps = 20
-        default_cfg = 3.5
-        default_sampler = "er_sde"
-        default_scheduler = "simple"
+        if has_4step_active:
+            default_steps = 4
+            default_cfg = 1.15
+            default_sampler = "euler"
+            default_scheduler = "simple"
+        elif has_turbo_active:
+            default_steps = 10
+            default_cfg = 1.25 if preset_cfg is None else preset_cfg
+            default_sampler = "er_sde"
+            default_scheduler = "simple"
+        else:
+            default_steps = 20
+            default_cfg = 3.5
+            default_sampler = "er_sde"
+            default_scheduler = "simple"
 
     width = int(inputs.get("width", 768))
     height = int(inputs.get("height", 1024))
@@ -1079,49 +1135,100 @@ def build_workflow_from_inputs(inputs: Dict[str, Any]) -> Tuple[Dict[str, Any], 
         if saved_ref_filename:
             width, height = img_w, img_h
 
-    workflow["1"]["inputs"]["unet_name"] = selected_unet
-    workflow["2"]["inputs"]["clip_name"] = resolved_clip
-    workflow["3"]["inputs"]["vae_name"] = resolved_vae
-    workflow["4"]["inputs"]["text"] = positive_text
-    workflow["4"]["inputs"]["clip"] = current_clip
-    workflow["5"]["inputs"]["text"] = negative_text
-    workflow["5"]["inputs"]["clip"] = current_clip
-    workflow["6"]["inputs"]["width"] = width
-    workflow["6"]["inputs"]["height"] = height
-    workflow["7"]["inputs"]["seed"] = seed
-    workflow["7"]["inputs"]["steps"] = steps
-    workflow["7"]["inputs"]["cfg"] = cfg
-    workflow["7"]["inputs"]["sampler_name"] = sampler
-    workflow["7"]["inputs"]["scheduler"] = scheduler
-    workflow["7"]["inputs"]["model"] = current_model
+    if is_anima_38b:
+        workflow["1"]["inputs"]["unet_name"] = selected_unet
+        workflow["2"]["inputs"]["clip_name"] = resolved_clip
+        workflow["3"]["inputs"]["qwen35_model"] = QWEN35_CLIP_NAME
+        workflow["4"]["inputs"]["model"] = current_model
+        workflow["4"]["inputs"]["native_clip"] = current_clip
+        workflow["4"]["inputs"]["qwen35_clip"] = ["3", 0]
+        workflow["4"]["inputs"]["adapter_name"] = ANIMA_ADAPTER_NAME
+        workflow["4"]["inputs"]["prompt"] = positive_text
+        workflow["4"]["inputs"]["adapter_strength"] = 1.0
+        workflow["5"]["inputs"]["clip"] = current_clip
+        workflow["5"]["inputs"]["text"] = negative_text
+        workflow["6"]["inputs"]["width"] = width
+        workflow["6"]["inputs"]["height"] = height
+        workflow["7"]["inputs"]["seed"] = seed
+        workflow["7"]["inputs"]["steps"] = steps
+        workflow["7"]["inputs"]["cfg"] = cfg
+        workflow["7"]["inputs"]["sampler_name"] = sampler
+        workflow["7"]["inputs"]["scheduler"] = scheduler
+        workflow["7"]["inputs"]["model"] = current_model
+        workflow["7"]["inputs"]["positive"] = ["4", 0]
+        workflow["7"]["inputs"]["negative"] = ["5", 0]
+        workflow["8"]["inputs"]["vae_name"] = resolved_vae
+        workflow["9"]["inputs"]["vae"] = ["8", 0]
 
-    if saved_ref_filename:
-        # Img2Img path: LoadImage -> VAEEncode -> KSampler (Node 7)
-        workflow["10"] = {
-            "inputs": {
-                "image": saved_ref_filename
-            },
-            "class_type": "LoadImage",
-            "_meta": {
-                "title": f"Load Reference Image ({saved_ref_filename})"
+        if saved_ref_filename:
+            workflow["11"] = {
+                "inputs": {
+                    "image": saved_ref_filename
+                },
+                "class_type": "LoadImage",
+                "_meta": {
+                    "title": f"Load Reference Image ({saved_ref_filename})"
+                }
             }
-        }
-        workflow["11"] = {
-            "inputs": {
-                "pixels": ["10", 0],
-                "vae": ["3", 0]
-            },
-            "class_type": "VAEEncode",
-            "_meta": {
-                "title": "VAE Encode (Reference Image)"
+            workflow["12"] = {
+                "inputs": {
+                    "pixels": ["11", 0],
+                    "vae": ["8", 0]
+                },
+                "class_type": "VAEEncode",
+                "_meta": {
+                    "title": "VAE Encode (Reference Image)"
+                }
             }
-        }
-        workflow["7"]["inputs"]["latent_image"] = ["11", 0]
-        workflow["7"]["inputs"]["denoise"] = denoise
+            workflow["7"]["inputs"]["latent_image"] = ["12", 0]
+            workflow["7"]["inputs"]["denoise"] = denoise
+        else:
+            workflow["7"]["inputs"]["latent_image"] = ["6", 0]
+            workflow["7"]["inputs"]["denoise"] = 1.0
     else:
-        # Txt2Img path: EmptyLatentImage (Node 6) -> KSampler (Node 7)
-        workflow["7"]["inputs"]["latent_image"] = ["6", 0]
-        workflow["7"]["inputs"]["denoise"] = 1.0
+        workflow["1"]["inputs"]["unet_name"] = selected_unet
+        workflow["2"]["inputs"]["clip_name"] = resolved_clip
+        workflow["3"]["inputs"]["vae_name"] = resolved_vae
+        workflow["4"]["inputs"]["text"] = positive_text
+        workflow["4"]["inputs"]["clip"] = current_clip
+        workflow["5"]["inputs"]["text"] = negative_text
+        workflow["5"]["inputs"]["clip"] = current_clip
+        workflow["6"]["inputs"]["width"] = width
+        workflow["6"]["inputs"]["height"] = height
+        workflow["7"]["inputs"]["seed"] = seed
+        workflow["7"]["inputs"]["steps"] = steps
+        workflow["7"]["inputs"]["cfg"] = cfg
+        workflow["7"]["inputs"]["sampler_name"] = sampler
+        workflow["7"]["inputs"]["scheduler"] = scheduler
+        workflow["7"]["inputs"]["model"] = current_model
+
+        if saved_ref_filename:
+            # Img2Img path: LoadImage -> VAEEncode -> KSampler (Node 7)
+            workflow["10"] = {
+                "inputs": {
+                    "image": saved_ref_filename
+                },
+                "class_type": "LoadImage",
+                "_meta": {
+                    "title": f"Load Reference Image ({saved_ref_filename})"
+                }
+            }
+            workflow["11"] = {
+                "inputs": {
+                    "pixels": ["10", 0],
+                    "vae": ["3", 0]
+                },
+                "class_type": "VAEEncode",
+                "_meta": {
+                    "title": "VAE Encode (Reference Image)"
+                }
+            }
+            workflow["7"]["inputs"]["latent_image"] = ["11", 0]
+            workflow["7"]["inputs"]["denoise"] = denoise
+        else:
+            # Txt2Img path: EmptyLatentImage (Node 6) -> KSampler (Node 7)
+            workflow["7"]["inputs"]["latent_image"] = ["6", 0]
+            workflow["7"]["inputs"]["denoise"] = 1.0
 
     return workflow, seed, active_model_name, applied_loras, missing_loras
 

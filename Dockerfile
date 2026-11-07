@@ -22,9 +22,15 @@ ENV DEBIAN_FRONTEND=noninteractive \
     SILVERMOON_UNET_URL=https://huggingface.co/silvermoong/SilvermoonMix-Anima-Evolved/resolve/main/SilvermoonMix-Anima29B-Evolved-V2.3.safetensors \
     ANIMA_BASE_UNET_NAME=anima-base-v1.0.safetensors \
     ANIMA_BASE_UNET_URL=https://huggingface.co/circlestone-labs/Anima/resolve/main/split_files/diffusion_models/anima-base-v1.0.safetensors \
+    ANIMA_38B_UNET_NAME=Anima-3.8B-v1.1.safetensors \
+    ANIMA_38B_UNET_URL=https://huggingface.co/lylogummy/Anima-3.8B/resolve/main/difussion_models/Anima-3.8B-v1.1.safetensors \
     DEFAULT_MODEL=nova \
     NOVA_CLIP_NAME=qwen_3_06b_base.safetensors \
     NOVA_CLIP_URL=https://huggingface.co/circlestone-labs/Anima/resolve/main/split_files/text_encoders/qwen_3_06b_base.safetensors \
+    QWEN35_CLIP_NAME=qwen35_4b.safetensors \
+    QWEN35_CLIP_URL=https://huggingface.co/lylogummy/Anima-3.8B/resolve/main/text_encoders/qwen35_4b.safetensors \
+    ANIMA_ADAPTER_NAME=Anima-3.8B-expanded_adapter.safetensors \
+    ANIMA_ADAPTER_URL=https://huggingface.co/lylogummy/Anima-3.8B/resolve/main/text_encoders/Anima-3.8B-expanded_adapter.safetensors \
     NOVA_VAE_NAME=qwen_image_vae.safetensors \
     NOVA_VAE_URL=https://huggingface.co/circlestone-labs/Anima/resolve/main/split_files/vae/qwen_image_vae.safetensors
 
@@ -64,6 +70,10 @@ RUN python3 -m pip install --no-cache-dir \
 # 3. Clone ComfyUI repository & install dependencies
 RUN git clone --depth 1 https://github.com/comfyanonymous/ComfyUI.git /app/ComfyUI \
     && python3 -m pip install --no-cache-dir -r /app/ComfyUI/requirements.txt
+
+# 3b. Install Anima 3.8B Custom Node (registers 52 DiT block detection & Qwen3.5 Unified Prompt)
+RUN git clone --depth 1 https://github.com/GumGum10/comfyui-anima-3-8B.git /app/ComfyUI/custom_nodes/comfyui-anima-3-8B \
+    && python3 -m pip install --no-cache-dir -r /app/ComfyUI/custom_nodes/comfyui-anima-3-8B/requirements.txt
 
 # 4. Install worker-specific requirements
 COPY requirements.txt /app/requirements.txt
@@ -108,6 +118,7 @@ RUN chmod +x /app/download_loras.sh && /app/download_loras.sh /app/ComfyUI/model
 
 # 7. Copy handler, workflows, and startup script
 COPY workflow_anima.json /app/workflow_anima.json
+COPY workflow_anima_38b.json /app/workflow_anima_38b.json
 COPY handler.py /app/handler.py
 COPY warmup.py /app/warmup.py
 COPY start.sh /app/start.sh

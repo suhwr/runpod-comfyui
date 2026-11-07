@@ -2,21 +2,20 @@
 # ==============================================================================
 # download_loras.sh — Curated SOTA LoRA Collection for Pure-DiT Anima Architecture
 #
-# Downloads & aliases 14 high-quality LoRAs:
-#   1. Anima Turbo v1.1 (Anti-Slop 8-10 steps step distillation)
+# Curated based on top Civitai/HF download statistics & visual quality:
+#   1. Anima Turbo v1.1 (Anti-Slop 8-10 steps step distillation) [80k+ DL]
 #   2. Anima Turbo 4-Step (Extreme speed preview)
-#   3. Highres Aesthetic Booster (Micro-details, lineart & eye clarity)
-#   4. RL Anatomy & Hand Fix (Reinforcement learning anatomy & hands)
-#   5. Context Detailer (Hair strands, fabric folds & clothing drapery)
+#   3. Highres Aesthetic Booster (Micro-details, lineart & eye clarity) [47k+ DL]
+#   4. RL Anatomy & Hand Fix (Reinforcement learning anatomy & hands) [14k+ DL]
+#   5. Context Detailer (Hair strands, fabric folds & clothing drapery) [38k+ DL]
 #   6. Rendering Detailer (Sharp brush strokes & crisp textures)
-#   7. Hand-Drawn Sketch (Draft lines, pencil sketch & thin lineart)
-#   8. Classic Watercolor (Ken Sugimori vintage watercolor illustration)
-#   9. NoobAI Modern Anime Style (Vibrant digital art illustration)
-#  10. Fantasy Art & Dramatic Lighting (Painterly environmental depth)
-#  11. Retro 90s Anime Style (Vintage cel shading)
-#  12. Dynamic Action / Battle Pose (Action lines & muscular tension)
-#  13. Vintage 90s OVA (Classic OVA mechanical & character lineart)
-#  14. Sharp High-Contrast Lineart (Bold ink & crisp silhouette)
+#   7. NoobAI Modern Anime Style (Vibrant 2D Danbooru / flat cel shading) [10k+ DL]
+#   8. Hand-Drawn Sketch (Yamimatsu7 - pencil sketch & thin lineart)
+#   9. Classic Watercolor (Ken Sugimori vintage watercolor illustration)
+#
+# Obsolete/low-download/broken LoRAs purged:
+#   - Greg Rutkowski (causes muddy 2.5D oil paint leak)
+#   - Helltaker, SailorMoon, DragonBall, Gunsmith (outdated 28-block preview LoRAs)
 # ==============================================================================
 set -e
 
@@ -81,45 +80,20 @@ download_lora "rendering_detailer_base10-000400.safetensors" \
     "https://huggingface.co/Sybamboo/anima-detail-tweaker-backup/resolve/main/loras/rendering_detailer_base10-000400.safetensors" \
     "Rendering stroke sharpness and texture enhancer"
 
-# 7. Hand-Drawn Sketch & Thin Lineart (Yamimatsu7)
+# 7. NoobAI Modern Anime Style & 2D Cel Shading (Danbooru vibrant flat illustration)
+download_lora "noobai-style-anima-lora-final.safetensors" \
+    "https://huggingface.co/mikeyoubeach/noobai-style-anima-lora/resolve/main/noobai-style-anima-lora-final.safetensors" \
+    "Modern vibrant Danbooru illustration & pure flat 2D anime cel-shading"
+
+# 8. Hand-Drawn Sketch & Thin Lineart (Yamimatsu7)
 download_lora "yamimatsu7_A3P_v1.safetensors" \
     "https://huggingface.co/GAi92/anima-preview-3-loras/resolve/main/styles/yamimatsu7_A3P_v1/yamimatsu7_A3P_v1.safetensors" \
     "Authentic hand-drawn pencil/ink sketch and thin lineart"
 
-# 8. Classic Watercolor & Hand-drawn Lines (Ken Sugimori Style)
+# 9. Classic Watercolor & Hand-drawn Lines (Ken Sugimori Style)
 download_lora "sugimori_ken_A3P_v1.safetensors" \
     "https://huggingface.co/GAi92/anima-preview-3-loras/resolve/main/styles/sugimori_ken_A3P_v1/sugimori_ken_A3P_v1.safetensors" \
     "Classic 90s hand-drawn watercolor illustration aesthetic"
-
-# 9. NoobAI Modern Anime Style
-download_lora "noobai-style-anima-lora-final.safetensors" \
-    "https://huggingface.co/mikeyoubeach/noobai-style-anima-lora/resolve/main/noobai-style-anima-lora-final.safetensors" \
-    "Modern vibrant Danbooru illustration aesthetic"
-
-# 10. Fantasy Art & Dramatic Lighting
-download_lora "anima-greg-rutkowski-style.safetensors" \
-    "https://huggingface.co/circlestone-labs/Anima-Official-LoRAs/resolve/main/anima-greg-rutkowski-style.safetensors" \
-    "Dramatic atmospheric lighting and painterly scenery"
-
-# 11. Retro 90s Cel Shading (Sailor Moon style)
-download_lora "SailorMoon-A1_v1.safetensors" \
-    "https://huggingface.co/barusun1/anima-base-1-loras/resolve/main/styles/SailorMoon-A1_v1/SailorMoon-A1_v1.safetensors" \
-    "Classic 90s vintage anime cel-shading aesthetic"
-
-# 12. Dynamic Action / Battle Pose (DragonBall action style)
-download_lora "DragonBall-A1_v1.safetensors" \
-    "https://huggingface.co/barusun1/anima-base-1-loras/resolve/main/styles/DragonBall-A1_v1/DragonBall-A1_v1.safetensors" \
-    "Dynamic fighting pose and battle intensity"
-
-# 13. Vintage 90s OVA Anime (Gunsmith Cats style)
-download_lora "Gunsmith-A1_v1.safetensors" \
-    "https://huggingface.co/barusun1/anima-base-1-loras/resolve/main/styles/Gunsmith-A1_v1/Gunsmith-A1_v1.safetensors" \
-    "Sharp mechanical & 90s OVA anime lineart"
-
-# 14. Sharp High-Contrast Lineart (Helltaker style)
-download_lora "Helltaker-A1_v1.safetensors" \
-    "https://huggingface.co/barusun1/anima-base-1-loras/resolve/main/styles/Helltaker-A1_v1/Helltaker-A1_v1.safetensors" \
-    "Stylized bold ink, suit silhouettes & sharp aesthetic"
 
 # ─── Aliases & Intuitive Shorthand Symlinks ────────────────────────────────────
 cd "$TARGET_DIR"
@@ -154,6 +128,13 @@ create_link "anima_context_detailer_base10.safetensors" "fabric_detailer.safeten
 create_link "rendering_detailer_base10-000400.safetensors" "rendering_detailer.safetensors"
 create_link "rendering_detailer_base10-000400.safetensors" "texture_detailer.safetensors"
 
+# 2D Anime & Cel Shading Style (Key to Pure 2D Flat Art)
+create_link "noobai-style-anima-lora-final.safetensors" "noobai_style.safetensors"
+create_link "noobai-style-anima-lora-final.safetensors" "noobai.safetensors"
+create_link "noobai-style-anima-lora-final.safetensors" "pure_2d.safetensors"
+create_link "noobai-style-anima-lora-final.safetensors" "flat_anime.safetensors"
+create_link "noobai-style-anima-lora-final.safetensors" "cel_shading.safetensors"
+
 # Sketch & Hand-Drawn Styles
 create_link "yamimatsu7_A3P_v1.safetensors" "sketch_style.safetensors"
 create_link "yamimatsu7_A3P_v1.safetensors" "hand_drawn_sketch.safetensors"
@@ -163,25 +144,4 @@ create_link "sugimori_ken_A3P_v1.safetensors" "watercolor_artist.safetensors"
 create_link "sugimori_ken_A3P_v1.safetensors" "sugimori_style.safetensors"
 create_link "sugimori_ken_A3P_v1.safetensors" "classic_watercolor.safetensors"
 
-# Art & Aesthetics
-create_link "noobai-style-anima-lora-final.safetensors" "noobai_style.safetensors"
-create_link "noobai-style-anima-lora-final.safetensors" "noobai.safetensors"
-
-create_link "anima-greg-rutkowski-style.safetensors" "fantasy_art.safetensors"
-create_link "anima-greg-rutkowski-style.safetensors" "dramatic_lighting.safetensors"
-
-create_link "SailorMoon-A1_v1.safetensors" "retro_90s.safetensors"
-create_link "SailorMoon-A1_v1.safetensors" "retro_anime_90s.safetensors"
-create_link "SailorMoon-A1_v1.safetensors" "sailormoon_style.safetensors"
-
-create_link "DragonBall-A1_v1.safetensors" "dynamic_action.safetensors"
-create_link "DragonBall-A1_v1.safetensors" "dynamic_action_pose.safetensors"
-create_link "DragonBall-A1_v1.safetensors" "dragonball_style.safetensors"
-
-create_link "Gunsmith-A1_v1.safetensors" "vintage_ova.safetensors"
-create_link "Gunsmith-A1_v1.safetensors" "gunsmith_style.safetensors"
-
-create_link "Helltaker-A1_v1.safetensors" "sharp_lineart.safetensors"
-create_link "Helltaker-A1_v1.safetensors" "helltaker_style.safetensors"
-
-echo "✨ All 14 LoRAs and aliases successfully initialized in $TARGET_DIR!"
+echo "✨ Curated high-popularity LoRAs and aliases successfully initialized in $TARGET_DIR!"
