@@ -1,6 +1,12 @@
 #!/usr/bin/env bash
 set -e
 
+export PYTHONUNBUFFERED=1
+export CUDA_MODULE_LOADING=LAZY
+export TRITON_DEFAULT_FP_FUSION=1
+export PYTORCH_CUDA_ALLOC_CONF="expandable_segments:True"
+export TORCH_CUDA_ARCH_LIST="7.5;8.0;8.6;8.9;9.0;10.0;12.0+PTX"
+
 # ==============================================================================
 # COMPILER CHECK: Triton requires a C compiler (gcc) for JIT kernel compilation
 # ==============================================================================
@@ -76,6 +82,15 @@ for VOL in "/runpod-volume" "/workspace" "/volume"; do
         if [ -f "$FPATH" ]; then
             echo "⚡ Found SilvermoonMix UNet in volume! Symlinking $FPATH -> $DIFFUSION_DIR/$SILVERMOON_UNET_NAME"
             ln -sf "$FPATH" "$DIFFUSION_DIR/$SILVERMOON_UNET_NAME"
+            break
+        fi
+    done
+
+    # Auto-symlink Anima 3.8B UNet from volume
+    for FPATH in "$VOL/models/diffusion_models/$ANIMA_38B_UNET_NAME" "$VOL/models/$ANIMA_38B_UNET_NAME" "$VOL/$ANIMA_38B_UNET_NAME"; do
+        if [ -f "$FPATH" ]; then
+            echo "⚡ Found Anima 3.8B UNet in volume! Symlinking $FPATH -> $DIFFUSION_DIR/$ANIMA_38B_UNET_NAME"
+            ln -sf "$FPATH" "$DIFFUSION_DIR/$ANIMA_38B_UNET_NAME"
             break
         fi
     done
@@ -166,6 +181,10 @@ else
     echo "✅ CircleStone Anima Base v1.0 UNet downloaded successfully!"
 fi
 
+if [ -f "$DIFFUSION_DIR/$ANIMA_38B_UNET_NAME" ]; then
+    echo "⚡ Anima 3.8B v1.1 UNet is already available: $DIFFUSION_DIR/$ANIMA_38B_UNET_NAME"
+fi
+
 if [ -f "$TEXT_ENCODER_DIR/$NOVA_CLIP_NAME" ]; then
     echo "⚡ Qwen Text Encoder is already available: $TEXT_ENCODER_DIR/$NOVA_CLIP_NAME"
 else
@@ -196,11 +215,6 @@ fi
 if [ -f "/app/download_loras.sh" ]; then
     /app/download_loras.sh "$LORA_DIR"
 fi
-
-export PYTHONUNBUFFERED=1
-export CUDA_MODULE_LOADING=LAZY
-export TORCH_CUDA_ARCH_LIST="7.5;8.0;8.6;8.9;9.0;10.0;12.0+PTX"
-export PYTORCH_CUDA_ALLOC_CONF="expandable_segments:True"
 
 # ==============================================================================
 # 4. Hardware Detection & ComfyUI Daemon Startup

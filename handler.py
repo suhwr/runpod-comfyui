@@ -113,23 +113,39 @@ NOVA_VAE_NAME = os.environ.get("NOVA_VAE_NAME", "qwen_image_vae.safetensors")
 TURBO_LORA_NAME = os.environ.get("TURBO_LORA_NAME", "Anima_Turbo_v1.1.safetensors")
 
 
+_CACHED_AVAILABLE_UNETS: Optional[List[str]] = None
+_CACHED_AVAILABLE_LORAS: Optional[List[str]] = None
+
+
 def get_comfy_available_loras() -> List[str]:
-    """Fetch exact list of LoRAs recognized by ComfyUI's LoraLoader."""
+    """Fetch exact list of LoRAs. Prefers fast local disk scanning, then cached result."""
+    global _CACHED_AVAILABLE_LORAS
+    if _CACHED_AVAILABLE_LORAS is not None:
+        return _CACHED_AVAILABLE_LORAS
+
+    # 1. Fast direct disk inspection (Instant < 1ms, zero HTTP serialization latency)
+    lora_dir = os.path.join(COMFY_DIR, "models", "loras")
+    if os.path.isdir(lora_dir):
+        try:
+            files = [f for f in os.listdir(lora_dir) if f.endswith((".safetensors", ".pt"))]
+            if files:
+                _CACHED_AVAILABLE_LORAS = files
+                return files
+        except Exception:
+            pass
+
+    # 2. HTTP fallback if disk inspection failed
     try:
         r = requests.get(f"http://{COMFY_HOST}/object_info/LoraLoader", timeout=2)
         if r.status_code == 200:
             lora_input = r.json().get("LoraLoader", {}).get("input", {}).get("required", {}).get("lora_name", [])
             if lora_input and isinstance(lora_input[0], list) and lora_input[0]:
+                _CACHED_AVAILABLE_LORAS = lora_input[0]
                 return lora_input[0]
     except Exception as exc:
-        logger.debug(f"Could not query /object_info/LoraLoader ({exc}), falling back to disk...")
+        logger.debug(f"Could not query /object_info/LoraLoader ({exc}), falling back to empty...")
 
-    lora_dir = os.path.join(COMFY_DIR, "models", "loras")
-    if os.path.isdir(lora_dir):
-        try:
-            return os.listdir(lora_dir)
-        except Exception:
-            pass
+    _CACHED_AVAILABLE_LORAS = []
     return []
 
 
@@ -178,25 +194,36 @@ def resolve_lora_name(requested_name: str, available_loras: Optional[List[str]] 
 
 
 def get_comfy_available_unets() -> List[str]:
-    """Fetch exact list of UNets recognized by ComfyUI's UNETLoader or present on disk."""
-    try:
-        r = requests.get(f"http://{COMFY_HOST}/object_info/UNETLoader", timeout=2)
-        if r.status_code == 200:
-            unet_input = r.json().get("UNETLoader", {}).get("input", {}).get("required", {}).get("unet_name", [])
-            if unet_input and isinstance(unet_input[0], list) and unet_input[0]:
-                return unet_input[0]
-    except Exception as exc:
-        logger.debug(f"Could not query /object_info/UNETLoader ({exc}), falling back to disk...")
+    """Fetch exact list of UNets. Prefers fast local disk scanning, then cached result."""
+    global _CACHED_AVAILABLE_UNETS
+    if _CACHED_AVAILABLE_UNETS is not None:
+        return _CACHED_AVAILABLE_UNETS
 
+    # 1. Fast direct disk inspection (Instant < 1ms, zero HTTP serialization latency)
     unet_dir = os.path.join(COMFY_DIR, "models", "diffusion_models")
     if os.path.isdir(unet_dir):
         try:
             files = [f for f in os.listdir(unet_dir) if f.endswith((".safetensors", ".pt", ".bin"))]
             if files:
+                _CACHED_AVAILABLE_UNETS = files
                 return files
         except Exception:
             pass
-    return [NOVA_UNET_NAME, ANIMA_38B_UNET_NAME, SILVERMOON_UNET_NAME, ANIMA_BASE_UNET_NAME]
+
+    # 2. HTTP fallback if disk inspection failed
+    try:
+        r = requests.get(f"http://{COMFY_HOST}/object_info/UNETLoader", timeout=2)
+        if r.status_code == 200:
+            unet_input = r.json().get("UNETLoader", {}).get("input", {}).get("required", {}).get("unet_name", [])
+            if unet_input and isinstance(unet_input[0], list) and unet_input[0]:
+                _CACHED_AVAILABLE_UNETS = unet_input[0]
+                return unet_input[0]
+    except Exception as exc:
+        logger.debug(f"Could not query /object_info/UNETLoader ({exc}), falling back to defaults...")
+
+    fallback = [NOVA_UNET_NAME, ANIMA_38B_UNET_NAME, SILVERMOON_UNET_NAME, ANIMA_BASE_UNET_NAME]
+    _CACHED_AVAILABLE_UNETS = fallback
+    return fallback
 
 
 def resolve_unet_name(requested_name: str, available_unets: Optional[List[str]] = None) -> Tuple[str, bool]:
@@ -337,6 +364,9 @@ def ensure_file_on_disk(subfolder: str, filename: str, url: str, min_size: int =
         res = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, timeout=600)
         if res.returncode == 0 and os.path.isfile(tmp_path):
             os.replace(tmp_path, dest_path)
+            global _CACHED_AVAILABLE_UNETS, _CACHED_AVAILABLE_LORAS
+            _CACHED_AVAILABLE_UNETS = None
+            _CACHED_AVAILABLE_LORAS = None
             logger.info(f"✅ Successfully downloaded '{filename}' ({os.path.getsize(dest_path)} bytes) via aria2c!")
             return True
         else:
@@ -453,8 +483,8 @@ VALID_SCHEDULERS = {
 # Default quality tags (Tuned specifically for Pure 2D Anime, Anti-Slop, Natural Anatomy & Rich Scenery)
 NOVA_QUALITY_BOOSTER = (
     "masterpiece, best quality, score_9, score_8, score_7, year 2025, newest, absurdres, highres, "
-    "2d, clean lineart, sharp defined outlines, cel shading, flat color, "
-    "accurate anatomy, natural body curves, well-proportioned limbs, "
+    "2d, dynamic pose, clean lineart, sharp defined outlines, cel shading, flat color, "
+    "accurate anatomy, natural body curves, well-proportioned limbs, clothes fluttering, dynamic hair, "
     "distinct hair clumps, expressive anime eyes, lively expression, delicate facial features, "
     "vibrant anime coloring, detailed scenery, beautiful background, scenic environment, "
     "atmospheric lighting, digital illustration"
@@ -462,14 +492,14 @@ NOVA_QUALITY_BOOSTER = (
 
 ORANGE_QUALITY_BOOSTER = (
     "masterpiece, best quality, score_9, score_8, year 2025, very aesthetic, newest, absurdres, highres, "
-    "2d, digital illustration, clean lineart, accurate anatomy, natural body curves, well-proportioned limbs, "
-    "expressive facial features, beautiful eyes, vibrant colors, detailed scenery, scenic background, harmonious composition"
+    "2d, dynamic pose, digital illustration, clean lineart, accurate anatomy, natural body curves, well-proportioned limbs, "
+    "clothes fluttering, expressive facial features, beautiful eyes, vibrant colors, detailed scenery, scenic background, harmonious composition"
 )
 
 SILVERMOON_QUALITY_BOOSTER = (
     "masterpiece, best quality, score_9, score_8, year 2025, very aesthetic, newest, absurdres, highres, "
-    "2d, flat color, clean lineart, delicate brushwork, accurate hands, finely detailed fingers, "
-    "accurate anatomy, natural body curves, well-proportioned limbs, "
+    "2d, dynamic pose, flat color, clean lineart, delicate brushwork, accurate hands, finely detailed fingers, "
+    "accurate anatomy, natural body curves, well-proportioned limbs, fluid drapery, "
     "expressive eyes, delicate facial features, harmonious colors, detailed scenery, beautiful atmospheric background, detailed digital illustration"
 )
 
@@ -481,8 +511,9 @@ NEGATIVE_DEFAULT = (
     "2.5d, 3d, realistic, photorealistic, semi-realistic, cg, cgi, 3d render, unreal engine, octane render, "
     "airbrush, smooth shading, soft gradients, volumetric lighting, raytracing, ambient occlusion, flat 3d shading, muddy colors, "
     "plastic skin, shiny skin, oily skin, greasy skin, porcelain skin, doll face, mannequin, glossy plastic, 3d model, "
-    # 3. Anti-Anatomical Slop, Unnatural Curves & Mutations
-    "bad anatomy, bad proportions, gross proportions, deformed, disfigured, unnatural spine, awkward pose, rubber limbs, stiff pose, "
+    # 3. Anti-Anatomical Slop, Unnatural Curves & Mutations & Anti-Stiff Mannequin Poses
+    "(standing:1.2), stiff pose, rigid posture, straight posture, front view, center framing, mannequin pose, motionless, static, symmetrical pose, boring pose, stock photo pose, "
+    "bad anatomy, bad proportions, gross proportions, deformed, disfigured, unnatural spine, awkward pose, rubber limbs, "
     "bad hands, poorly drawn hands, mutated hands, missing fingers, extra digits, extra fingers, fewer digits, "
     "fused fingers, elongated fingers, long fingers, malformed fingers, crooked fingers, jointless limbs, "
     "malformed limbs, extra limbs, missing limbs, floating limbs, "
@@ -838,8 +869,8 @@ def build_workflow_from_inputs(inputs: Dict[str, Any]) -> Tuple[Dict[str, Any], 
 
     if preset in ("pure_2d", "flat_anime", "cel_shading", "flat_2d"):
         quality_booster = (
-            "masterpiece, best quality, score_9, score_8, year 2025, 2d, pure 2d, cel shading, flat color, flat shading, "
-            "anime screencap, sharp clean lineart, bold ink outlines, traditional anime drawing, zero gradients, vibrant colors, clean edges, "
+            "masterpiece, best quality, score_9, score_8, year 2025, 2d, pure 2d, dynamic pose, cel shading, flat color, flat shading, "
+            "anime screencap, sharp clean lineart, bold ink outlines, traditional anime drawing, hair flutter, clothes fluttering, zero gradients, vibrant colors, clean edges, "
             "accurate anatomy, natural body curves, detailed scenery, beautiful scenic background"
         )
         lora_list.append({"name": "Anima_Turbo_v1.1.safetensors", "strength": 0.85})
@@ -850,8 +881,8 @@ def build_workflow_from_inputs(inputs: Dict[str, Any]) -> Tuple[Dict[str, Any], 
         # The SOTA Digital Artist recipe: Turbo + Mild Aesthetic Boost + Anatomy Fix + Cloth/Hair Detailer
         quality_booster = (
             "masterpiece, best quality, score_9, score_8, very aesthetic, year 2025, newest, 2d, digital illustration, "
-            "Japanese artist style, clean lineart, cel shading, crisp outlines, vibrant anime coloring, "
-            "accurate anatomy, natural body curves, well-proportioned limbs, expressive eyes, defined hair clumps, delicate facial features, "
+            "dynamic pose, dynamic angle, Japanese artist style, clean lineart, cel shading, crisp outlines, vibrant anime coloring, "
+            "accurate anatomy, natural body curves, well-proportioned limbs, clothes fluttering, dynamic drapery, expressive eyes, defined hair clumps, delicate facial features, "
             "professional artwork, detailed scenery, beautiful background, atmospheric lighting"
         )
         lora_list.append({"name": "Anima_Turbo_v1.1.safetensors", "strength": 0.90})
@@ -874,8 +905,8 @@ def build_workflow_from_inputs(inputs: Dict[str, Any]) -> Tuple[Dict[str, Any], 
         # Maximum Character Recognition & Costume Fidelity (RL Prompt Alignment)
         quality_booster = (
             "masterpiece, best quality, score_9, score_8, very aesthetic, year 2025, newest, 2d, character focus, "
-            "official character art, accurate costume details, crisp lineart, cel shading, vibrant anime coloring, "
-            "accurate anatomy, natural body curves, well-proportioned limbs, expressive face, sharp focal clarity, "
+            "dynamic pose, lively stance, official character art, accurate costume details, crisp lineart, cel shading, vibrant anime coloring, "
+            "clothes fluttering, accurate anatomy, natural body curves, well-proportioned limbs, expressive face, sharp focal clarity, "
             "detailed scenery, scenic background"
         )
         lora_list.append({"name": "Anima_Turbo_v1.1.safetensors", "strength": 0.90})
@@ -908,8 +939,8 @@ def build_workflow_from_inputs(inputs: Dict[str, Any]) -> Tuple[Dict[str, Any], 
         # Dynamic Combat & Martial Arts Fighting Poses
         quality_booster = (
             "masterpiece, best quality, score_9, score_8, 2d, dynamic action pose, fighting stance, "
-            "motion lines, perspective foreshortening, crisp ink lineart, cel shading, intense energetic composition, "
-            "accurate anatomy, natural body curves, dynamic anatomy, dynamic background, cinematic battlefield, scenic environment"
+            "sharp perspective, body twist, dramatic angle, perspective foreshortening, motion lines, clothes fluttering, "
+            "crisp ink lineart, cel shading, intense energetic composition, accurate anatomy, natural body curves, dynamic anatomy, dynamic background, cinematic battlefield, scenic environment"
         )
         lora_list.append({"name": "Anima_Turbo_v1.1.safetensors", "strength": 0.90})
         lora_list.append({"name": "anatomy_fix", "strength": 0.65, "strength_model": 0.60, "strength_clip": 0.70})
@@ -1058,6 +1089,26 @@ def build_workflow_from_inputs(inputs: Dict[str, Any]) -> Tuple[Dict[str, Any], 
             "strength_model": strength_model,
             "strength_clip": strength_clip,
         })
+
+    # ─── RescaleCFG Model Patch (Prevents deep-fried saturation & stabilizes CFG) ─
+    # Standard ComfyUI native node that rescales latent variance (multiplier: 0.7).
+    # Allows model to strictly adhere to dynamic prompt tokens without color burning.
+    use_rescale_cfg = bool(inputs.get("rescale_cfg", True))
+    if use_rescale_cfg:
+        rescale_mult = float(inputs.get("rescale_multiplier", 0.7))
+        node_id_counter += 1
+        rescale_node_id = str(node_id_counter)
+        workflow[rescale_node_id] = {
+            "inputs": {
+                "model": current_model,
+                "multiplier": rescale_mult,
+            },
+            "class_type": "RescaleCFG",
+            "_meta": {
+                "title": f"RescaleCFG (multiplier={rescale_mult})"
+            }
+        }
+        current_model = [rescale_node_id, 0]
 
     if has_4step_active:
         default_steps = 4
@@ -1361,15 +1412,25 @@ def concurrency_controller(current_concurrency):
 
 if __name__ == "__main__":
     logger.info("=" * 60)
-    logger.info(f"🚀 Initializing Dual-Model ComfyUI Serverless Worker")
+    logger.info("🚀 Initializing SOTA Pure-DiT Anima ComfyUI Serverless Worker")
     logger.info(f"📂 ComfyUI Path : {COMFY_DIR}")
-    logger.info(f"🎨 Model 1 (Default): Nova Anime AM (2.9B) [Anima DiT + Qwen]")
-    logger.info(f"🎨 Model 2          : NoobAI-XL v1.1 [SDXL Native]")
+    logger.info(f"🎨 Default Model: Nova Anime AM v6.0 (2.9B DiT) [Pure-DiT + Qwen]")
+    logger.info(f"🎨 Flagship 52B : Anima 3.8B v1.1 DiT [Unified Pipeline]")
+    logger.info(f"🎨 Aesthetic    : SilvermoonMix Anima Evolved (2.9B DiT)")
+    logger.info(f"🎨 Base 2D      : CircleStone Anima Base v1.0 (2.9B DiT)")
     logger.info("=" * 60)
 
     if not ensure_comfyui_ready(timeout_seconds=30):
         logger.error(f"❌ ComfyUI failed to respond on {COMFY_HOST}")
         sys.exit(1)
+
+    # Pre-cache available UNets and LoRAs to eliminate first-job latency
+    try:
+        unets = get_comfy_available_unets()
+        loras = get_comfy_available_loras()
+        logger.info(f"⚡ Pre-cached {len(unets)} UNet(s) and {len(loras)} LoRA(s) for zero cold-start latency.")
+    except Exception as exc:
+        logger.warning(f"Pre-caching warning: {exc}")
 
     start_params = {
         "handler": handler,
