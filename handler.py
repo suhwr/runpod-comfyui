@@ -810,16 +810,9 @@ def build_workflow_from_inputs(inputs: Dict[str, Any]) -> Tuple[Dict[str, Any], 
                 pass
             available_unets = get_comfy_available_unets()
 
-    if is_anima_38b:
-        ensure_text_encoder_on_disk(QWEN35_CLIP_NAME, QWEN35_CLIP_URL)
-        ensure_text_encoder_on_disk(ANIMA_ADAPTER_NAME, ANIMA_ADAPTER_URL)
-
     selected_unet, is_available = resolve_unet_name(target_unet, available_unets)
 
     if not is_available:
-        # If fallback model is not Anima 3.8B, reset is_anima_38b to False
-        if "3.8" not in selected_unet.lower():
-            is_anima_38b = False
         if "silver" in selected_unet.lower():
             active_model_name = f"SilvermoonMix Anima Evolved (2.9B) [Auto-fallback from {target_unet}]"
             quality_booster = SILVERMOON_QUALITY_BOOSTER
@@ -833,12 +826,8 @@ def build_workflow_from_inputs(inputs: Dict[str, Any]) -> Tuple[Dict[str, Any], 
 
     custom_negative = inputs.get("negative_prompt", "").strip()
 
-    if is_anima_38b and os.path.isfile(WORKFLOW_ANIMA_38B_PATH):
-        workflow_path = WORKFLOW_ANIMA_38B_PATH
-    else:
-        workflow_path = WORKFLOW_ANIMA_PATH
-
-    with open(workflow_path, "r", encoding="utf-8") as f:
+    # All models (Nova, Anima 3.8B, Silvermoon, Base) use the unified standard Anima workflow
+    with open(WORKFLOW_ANIMA_PATH, "r", encoding="utf-8") as f:
         workflow = json.load(f)
 
     # ─── Curated Presets with Dedicated 2D Boosters & Clean LoRA Stacks ────────
@@ -1070,38 +1059,21 @@ def build_workflow_from_inputs(inputs: Dict[str, Any]) -> Tuple[Dict[str, Any], 
             "strength_clip": strength_clip,
         })
 
-    if is_anima_38b:
-        if has_4step_active:
-            default_steps = 6
-            default_cfg = 2.0
-            default_sampler = "euler"
-            default_scheduler = "beta"
-        elif has_turbo_active:
-            default_steps = 14
-            default_cfg = 2.5 if preset_cfg is None else preset_cfg
-            default_sampler = "euler"
-            default_scheduler = "beta"
-        else:
-            default_steps = 30
-            default_cfg = 7.5
-            default_sampler = "euler"
-            default_scheduler = "beta"
+    if has_4step_active:
+        default_steps = 4
+        default_cfg = 1.15
+        default_sampler = "euler"
+        default_scheduler = "simple"
+    elif has_turbo_active:
+        default_steps = 10
+        default_cfg = 1.25 if preset_cfg is None else preset_cfg
+        default_sampler = "er_sde"
+        default_scheduler = "simple"
     else:
-        if has_4step_active:
-            default_steps = 4
-            default_cfg = 1.15
-            default_sampler = "euler"
-            default_scheduler = "simple"
-        elif has_turbo_active:
-            default_steps = 10
-            default_cfg = 1.25 if preset_cfg is None else preset_cfg
-            default_sampler = "er_sde"
-            default_scheduler = "simple"
-        else:
-            default_steps = 20
-            default_cfg = 3.5
-            default_sampler = "er_sde"
-            default_scheduler = "simple"
+        default_steps = 15  # Default 15 steps globally across ALL models as requested
+        default_cfg = 2.1 if preset_cfg is None else preset_cfg
+        default_sampler = "er_sde"
+        default_scheduler = "simple"
 
     width = int(inputs.get("width", 768))
     height = int(inputs.get("height", 1024))
@@ -1135,100 +1107,61 @@ def build_workflow_from_inputs(inputs: Dict[str, Any]) -> Tuple[Dict[str, Any], 
         if saved_ref_filename:
             width, height = img_w, img_h
 
-    if is_anima_38b:
-        workflow["1"]["inputs"]["unet_name"] = selected_unet
-        workflow["2"]["inputs"]["clip_name"] = resolved_clip
-        workflow["3"]["inputs"]["qwen35_model"] = QWEN35_CLIP_NAME
-        workflow["4"]["inputs"]["model"] = current_model
-        workflow["4"]["inputs"]["native_clip"] = current_clip
-        workflow["4"]["inputs"]["qwen35_clip"] = ["3", 0]
-        workflow["4"]["inputs"]["adapter_name"] = ANIMA_ADAPTER_NAME
-        workflow["4"]["inputs"]["prompt"] = positive_text
-        workflow["4"]["inputs"]["adapter_strength"] = 1.0
-        workflow["5"]["inputs"]["clip"] = current_clip
-        workflow["5"]["inputs"]["text"] = negative_text
-        workflow["6"]["inputs"]["width"] = width
-        workflow["6"]["inputs"]["height"] = height
-        workflow["7"]["inputs"]["seed"] = seed
-        workflow["7"]["inputs"]["steps"] = steps
-        workflow["7"]["inputs"]["cfg"] = cfg
-        workflow["7"]["inputs"]["sampler_name"] = sampler
-        workflow["7"]["inputs"]["scheduler"] = scheduler
-        workflow["7"]["inputs"]["model"] = current_model
-        workflow["7"]["inputs"]["positive"] = ["4", 0]
-        workflow["7"]["inputs"]["negative"] = ["5", 0]
-        workflow["8"]["inputs"]["vae_name"] = resolved_vae
-        workflow["9"]["inputs"]["vae"] = ["8", 0]
+    # Unified standard Anima pipeline for all models (Nova Anime, Anima 3.8B, Silvermoon, Base)
+    workflow["1"]["inputs"]["unet_name"] = selected_unet
+    workflow["2"]["inputs"]["clip_name"] = resolved_clip
+    workflow["3"]["inputs"]["vae_name"] = resolved_vae
+    workflow["4"]["inputs"]["text"] = positive_text
+    workflow["4"]["inputs"]["clip"] = current_clip
+    workflow["5"]["inputs"]["text"] = negative_text
+    workflow["5"]["inputs"]["clip"] = current_clip
+    workflow["6"]["inputs"]["width"] = width
+    workflow["6"]["inputs"]["height"] = height
+    workflow["7"]["inputs"]["seed"] = seed
+    workflow["7"]["inputs"]["steps"] = steps
+    workflow["7"]["inputs"]["cfg"] = cfg
+    workflow["7"]["inputs"]["sampler_name"] = sampler
+    workflow["7"]["inputs"]["scheduler"] = scheduler
+    workflow["7"]["inputs"]["model"] = current_model
 
-        if saved_ref_filename:
-            workflow["11"] = {
-                "inputs": {
-                    "image": saved_ref_filename
-                },
-                "class_type": "LoadImage",
-                "_meta": {
-                    "title": f"Load Reference Image ({saved_ref_filename})"
-                }
+    if saved_ref_filename:
+        # Img2Img path: LoadImage -> VAEEncode -> KSampler (Node 7)
+        workflow["10"] = {
+            "inputs": {
+                "image": saved_ref_filename
+            },
+            "class_type": "LoadImage",
+            "_meta": {
+                "title": f"Load Reference Image ({saved_ref_filename})"
             }
-            workflow["12"] = {
-                "inputs": {
-                    "pixels": ["11", 0],
-                    "vae": ["8", 0]
-                },
-                "class_type": "VAEEncode",
-                "_meta": {
-                    "title": "VAE Encode (Reference Image)"
-                }
+        }
+        workflow["11"] = {
+            "inputs": {
+                "pixels": ["10", 0],
+                "vae": ["3", 0]
+            },
+            "class_type": "VAEEncode",
+            "_meta": {
+                "title": "VAE Encode (Reference Image)"
             }
-            workflow["7"]["inputs"]["latent_image"] = ["12", 0]
-            workflow["7"]["inputs"]["denoise"] = denoise
-        else:
-            workflow["7"]["inputs"]["latent_image"] = ["6", 0]
-            workflow["7"]["inputs"]["denoise"] = 1.0
+        }
+        workflow["7"]["inputs"]["latent_image"] = ["11", 0]
+        workflow["7"]["inputs"]["denoise"] = denoise
     else:
-        workflow["1"]["inputs"]["unet_name"] = selected_unet
-        workflow["2"]["inputs"]["clip_name"] = resolved_clip
-        workflow["3"]["inputs"]["vae_name"] = resolved_vae
-        workflow["4"]["inputs"]["text"] = positive_text
-        workflow["4"]["inputs"]["clip"] = current_clip
-        workflow["5"]["inputs"]["text"] = negative_text
-        workflow["5"]["inputs"]["clip"] = current_clip
-        workflow["6"]["inputs"]["width"] = width
-        workflow["6"]["inputs"]["height"] = height
-        workflow["7"]["inputs"]["seed"] = seed
-        workflow["7"]["inputs"]["steps"] = steps
-        workflow["7"]["inputs"]["cfg"] = cfg
-        workflow["7"]["inputs"]["sampler_name"] = sampler
-        workflow["7"]["inputs"]["scheduler"] = scheduler
-        workflow["7"]["inputs"]["model"] = current_model
+        # Txt2Img path: EmptyLatentImage (Node 6) -> KSampler (Node 7)
+        workflow["7"]["inputs"]["latent_image"] = ["6", 0]
+        workflow["7"]["inputs"]["denoise"] = 1.0
 
-        if saved_ref_filename:
-            # Img2Img path: LoadImage -> VAEEncode -> KSampler (Node 7)
-            workflow["10"] = {
-                "inputs": {
-                    "image": saved_ref_filename
-                },
-                "class_type": "LoadImage",
-                "_meta": {
-                    "title": f"Load Reference Image ({saved_ref_filename})"
-                }
-            }
-            workflow["11"] = {
-                "inputs": {
-                    "pixels": ["10", 0],
-                    "vae": ["3", 0]
-                },
-                "class_type": "VAEEncode",
-                "_meta": {
-                    "title": "VAE Encode (Reference Image)"
-                }
-            }
-            workflow["7"]["inputs"]["latent_image"] = ["11", 0]
-            workflow["7"]["inputs"]["denoise"] = denoise
-        else:
-            # Txt2Img path: EmptyLatentImage (Node 6) -> KSampler (Node 7)
-            workflow["7"]["inputs"]["latent_image"] = ["6", 0]
-            workflow["7"]["inputs"]["denoise"] = 1.0
+    prefix_stem = "NovaAnime"
+    if "3.8" in selected_unet.lower():
+        prefix_stem = "Anima38B"
+    elif "silver" in selected_unet.lower():
+        prefix_stem = "Silvermoon"
+    elif "base" in selected_unet.lower():
+        prefix_stem = "AnimaBase"
+
+    if "9" in workflow and "filename_prefix" in workflow["9"].get("inputs", {}):
+        workflow["9"]["inputs"]["filename_prefix"] = f"ComfyUI_{prefix_stem}"
 
     return workflow, seed, active_model_name, applied_loras, missing_loras
 

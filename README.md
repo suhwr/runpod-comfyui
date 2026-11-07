@@ -72,10 +72,10 @@ Instead of configuring multiple LoRA weights manually, you can pass `"preset"` t
 | `negative_prompt` | `string` | `""` | Optional negative prompt overrides. |
 | `width` | `integer` | `768` | Width in pixels (`768`, `832`, `1024`). |
 | `height` | `integer` | `1024` | Height in pixels (`1024`, `1216`). |
-| `steps` | `integer` | *(Auto)* | Steps (`10` for Turbo/presets, `4` for 4step, `20` for Nova normal, `30` for Anima 3.8B). |
-| `cfg` | `float` | *(Auto)* | Guidance scale (`1.65` for pure_2d, `1.25` for presets, `3.5` for Nova normal, `7.5` for Anima 3.8B). |
-| `sampler` | `string` | *(Auto)* | Native sampler (`er_sde` for Nova 2.9B, `euler` for Anima 3.8B and 4-step). |
-| `scheduler` | `string` | *(Auto)* | Scheduler (`simple` for Nova 2.9B, `beta` for Anima 3.8B). |
+| `steps` | `integer` | *(Auto)* | Steps (`15` default across all models, `10` for Turbo/presets, `4` for 4step). |
+| `cfg` | `float` | *(Auto)* | Guidance scale (`2.1` default, `1.65` for pure_2d, `1.25` for presets). |
+| `sampler` | `string` | *(Auto)* | Native sampler (`er_sde` default for Anima ecosystem, `euler` for 4-step). |
+| `scheduler` | `string` | *(Auto)* | Scheduler (`simple` default for Anima ecosystem). |
 | `seed` | `integer` | `-1` | Random seed (`-1` for randomized generation). |
 
 ---
@@ -102,8 +102,8 @@ Instead of configuring multiple LoRA weights manually, you can pass `"preset"` t
     "prompt": "1girl, futuristic explorer, glowing tech staff, mountain temple, cherry blossoms in snow, cinematic sunset",
     "width": 1024,
     "height": 1024,
-    "steps": 30,
-    "cfg": 7.5
+    "steps": 15,
+    "cfg": 2.1
   }
 }
 ```

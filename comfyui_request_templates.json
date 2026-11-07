@@ -11,10 +11,10 @@
     },
     {
       "key": "3.8b",
-      "aliases": ["anima38", "anima_3.8b", "anima3.8b", "38b"],
+      "aliases": ["anima38", "anima_3.8b", "anima3.8b", "38b", "anima-3.8b"],
       "unet_file": "Anima-3.8B-v1.1.safetensors",
-      "text_encoders": ["qwen_3_06b_base.safetensors", "qwen35_4b.safetensors", "Anima-3.8B-expanded_adapter.safetensors"],
-      "description": "Anima 3.8B v1.1 DiT (52 DiT Blocks). Flagship terbaru dengan Semantic Connector v2 & Dual Qwen3.5 4B text encoder untuk pemahaman prompt luar biasa."
+      "text_encoders": ["qwen_3_06b_base.safetensors"],
+      "description": "Anima 3.8B v1.1 DiT (52 DiT Blocks). Flagship terbaru dengan 52 transformer blocks untuk pemahaman prompt luar biasa dan rendering presisi dalam pipeline standar Anima."
     },
     {
       "key": "anima_base",
@@ -203,15 +203,15 @@
     },
 
     "2_anima_38b_flagship": {
-      "description": "FLAGSHIP ANIMA 3.8B: Model DiT 52-block terbaru dengan Qwen 3.5 4B text encoder dan Semantic Connector v2.",
+      "description": "FLAGSHIP ANIMA 3.8B: Model DiT 52-block terbaru dengan pemahaman prompt komprehensif dalam pipeline standar Anima (er_sde + simple, default 15 steps).",
       "payload": {
         "input": {
           "model": "3.8b",
           "prompt": "1girl, futuristic explorer, glowing tech staff, high altitude mountain temple, cherry blossoms in snow, cinematic sunset",
           "width": 1024,
           "height": 1024,
-          "steps": 30,
-          "cfg": 7.5
+          "steps": 15,
+          "cfg": 2.1
         }
       }
     },
