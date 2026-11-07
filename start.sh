@@ -277,15 +277,7 @@ done
 
 echo "✅ ComfyUI is up and running healthy with Pure-DiT Anima support (Nova Anime v6.0 default, SilvermoonMix)!"
 
-# 6. Pre-warm default model into GPU VRAM
-#    In Scale-to-Zero serverless mode, DISABLED by default to save 12-15s cold-start latency!
-#    The real user job loads the model directly on first inference.
-if [ "${PREWARM_MODEL:-false}" = "true" ]; then
-    echo "🔥 Running VRAM Pre-warming..."
-    python3 /app/warmup.py || true
-fi
-
-# 7. Start the serverless worker listener
+# 6. Start the serverless worker listener (Zero pre-warm inference: loads directly on real user jobs)
 echo "🚀 Starting serverless worker listener..."
 cd /app
 exec python3 -u /app/handler.py

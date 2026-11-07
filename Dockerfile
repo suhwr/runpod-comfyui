@@ -12,7 +12,6 @@ ENV DEBIAN_FRONTEND=noninteractive \
     TRITON_DEFAULT_FP_FUSION=1 \
     TORCH_CUDA_ARCH_LIST="7.5;8.0;8.6;8.9;9.0;10.0;12.0+PTX" \
     PYTORCH_CUDA_ALLOC_CONF="expandable_segments:True" \
-    PREWARM_MODEL=false \
     LD_LIBRARY_PATH=/usr/local/cuda/lib64:${LD_LIBRARY_PATH} \
     CC=/usr/bin/gcc \
     COMFY_DIR=/app/ComfyUI \
@@ -121,12 +120,11 @@ RUN chmod +x /app/download_loras.sh && /app/download_loras.sh /app/ComfyUI/model
 COPY workflow_anima.json /app/workflow_anima.json
 COPY workflow_anima_38b.json /app/workflow_anima_38b.json
 COPY handler.py /app/handler.py
-COPY warmup.py /app/warmup.py
 COPY start.sh /app/start.sh
 COPY setup_volume.sh /app/setup_volume.sh
 COPY README.md /app/README.md
 
-RUN chmod +x /app/start.sh /app/setup_volume.sh /app/download_loras.sh /app/warmup.py \
+RUN chmod +x /app/start.sh /app/setup_volume.sh /app/download_loras.sh \
     && python3 -m compileall -q /app/ComfyUI \
     && python3 -m compileall -q /app \
     && python3 -m compileall -q /usr/local/lib/python3.11/dist-packages || true
